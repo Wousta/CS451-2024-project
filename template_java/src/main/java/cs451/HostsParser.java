@@ -14,6 +14,7 @@ public class HostsParser {
     private static final String SPACES_REGEX = "\\s+";
 
     private String filename;
+    //TODO: Usa algo mejor que una arrayList
     private List<Host> hosts = new ArrayList<>();
 
     public boolean populate(String key, String filename) {
