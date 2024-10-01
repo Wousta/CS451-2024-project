@@ -36,6 +36,8 @@ public class Main {
     public static void main(String[] args) throws InterruptedException, FileNotFoundException, IOException {
         Parser parser = new Parser(args);
         parser.parse();
+        int myId = parser.myId();
+        String config = parser.config();
 
         initSignalHandlers();
 
@@ -44,7 +46,7 @@ public class Main {
         System.out.println("My PID: " + pid + "\n");
         System.out.println("From a new terminal type `kill -SIGINT " + pid + "` or `kill -SIGTERM " + pid + "` to stop processing packets\n");
 
-        System.out.println("My ID: " + parser.myId() + "\n");
+        System.out.println("My ID: " + myId + "\n");
         System.out.println("List of resolved hosts is:");
         System.out.println("==========================");
         
@@ -63,14 +65,14 @@ public class Main {
 
         System.out.println("Path to config:");
         System.out.println("===============");
-        System.out.println(parser.config() + "\n");
+        System.out.println(config + "\n");
 
         System.out.println("Doing some initialization\n");
         //TODO: INICIALIZATION
         // Gets the name of the configuration in position 3 of [.. , example, configs, mode.config]
         String mode;
         try{
-            mode = parser.config().trim().split("/")[3];
+            mode = config.trim().split("/")[3];
             System.out.println("MODE: " + mode);
         }
         catch(IndexOutOfBoundsException e){
@@ -82,26 +84,30 @@ public class Main {
         if(mode.equals("perfect-links.config")){
             System.out.println("ENTERING PERFECT LINKS MODE");
             //TODO perf links
-            // Contains the values of the config file
-            int[] confVals;
-            try (BufferedReader reader = new BufferedReader(new FileReader(parser.config()))) {
+            // Contains the values of the config file, first value m is number of messages to send, second value is receiver index
+            int[] confVals = new int[2];
+            try (BufferedReader reader = new BufferedReader(new FileReader(config))) {
                 // Read the first (and only) line from the config file
                 String line = reader.readLine();
-                
-                if (line != null) {
-                    // Split the line by spaces
-                    String[] parts = line.trim().split("\\s+");
-    
-                    // Convert to an array of integers
-                    confVals = new int[parts.length];
-                    for (int i = 0; i < parts.length; i++) {
-                        confVals[i] = Integer.parseInt(parts[i]);
-                    }
+
+                // Split the line by spaces
+                String[] parts = line.trim().split("\\s+");
+
+                // Convert to an array of integers for later use to compare
+                for (int i = 0; i < parts.length; i++) {
+                    confVals[i] = Integer.parseInt(parts[i]);
                 }
-            } catch (IOException e) {
+
+            } catch (Exception e) {
+                System.err.println("Error while reading perfect links config");
                 e.printStackTrace();
                 return;
             }
+
+            if(confVals[1] == myId){
+                System.out.println("I am the receiver with ID: " + confVals[1]);
+            }
+            else System.out.println("I am a sender with ID: " + myId); 
 
         }
         else if(mode.equals("fifo-broadcast.config")){
