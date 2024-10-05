@@ -46,16 +46,15 @@ public class Main {
 
         initSignalHandlers();
         List<Host> hosts = parser.hosts();
-        Host thisHost = hosts.get(myId);    // Host of this process
+        Host thisHost = hosts.get(myId-1);    // Host of this process
         Logger logger = new Logger(parser, thisHost);
+        logger.printLayout();
         
+
         //TODO: INICIALIZATION
         // Create socket on my port
         DatagramSocket sock;
-        DatagramPacket packet;
-
-        logger.printLayout();
-                  
+        DatagramPacket packet;       
         String mode; // Name of the configuration to be run (perfect links, fifo broadcast, lattice agreement)
 
         // Initialize mode and UDP socket and packet
@@ -75,19 +74,14 @@ public class Main {
             System.out.println("ENTERING PERFECT LINKS MODE");
             //TODO perf links
             // Contains the values of the config file, first value m is number of messages to send, second value is receiver index
-            int[] confVals = new int[2];
+            int msgsToSend;
+            int receiverId;
+            
             try (BufferedReader reader = new BufferedReader(new FileReader(config))) {
-                // Read the first (and only) line from the config file
                 String line = reader.readLine();
-
-                // Split the line by spaces
                 String[] parts = line.trim().split("\\s+");
-
-                // Convert to an array of integers for later use to compare
-                for (int i = 0; i < parts.length; i++) {
-                    confVals[i] = Integer.parseInt(parts[i]);
-                }
-
+                msgsToSend = Integer.parseInt(parts[0]);
+                receiverId = Integer.parseInt(parts[1]);   // CAREFUL 
             } catch (Exception e) {
                 System.err.println("Error while reading perfect links config");
                 e.printStackTrace();
@@ -95,32 +89,25 @@ public class Main {
                 return;
             }
 
-            if(confVals[1] == myId){
-                System.out.println("I am the receiver with ID: " + confVals[1] + ", delivering messages...");
+            if(receiverId == myId){
+                System.out.println("I am the receiver with ID: " + myId + ", delivering messages...");
                 // After a process finishes broadcasting,
                 // it waits forever for the delivery of messages.
-                int leidoCount = 0;
-                while (leidoCount < 16) {
+                PerfectLink link = new PerfectLink(sock);
+                while (true) {
                     //TODO: receive packet and process
                     sock.receive(packet);
                     ByteArrayInputStream bin =  new ByteArrayInputStream(packet.getData());
                     DataInputStream din = new DataInputStream (bin);
                     int val = din.read();
-                    System.out.println("Leido: " + val);
-                    leidoCount++;
+                    System.out.println("Leido: " + val + " From IP | port: " + packet.getAddress().toString() + " | " + packet.getPort());
                 }
-                System.out.println("leidos = " + leidoCount);
             }
             else {
-                System.out.println("I am a sender with ID: " + myId + ", Broadcasting messages...");
-                Host receiver = hosts.get(confVals[1]);
-                packet.setAddress(InetAddress.getByName(receiver.getIp()));
-                packet.setPort(receiver.getPort());
-                System.out.println("Sender enters while loop to send");
-                while (true) {
-                    byte data[] = {(byte) thisHost.getId()};
-                    packet.setData(data);
-                    sock.send(packet);
+                System.out.println("I am a sender with ID: " + myId + " Sending to ID: " + receiverId + ", Broadcasting messages...");
+                PerfectLink link = new PerfectLink(sock);
+                while(true){
+                    link.send(hosts.get(receiverId-1), packet);
                 }
             }
 

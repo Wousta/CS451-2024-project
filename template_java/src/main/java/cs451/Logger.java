@@ -9,15 +9,22 @@ public class Logger {
     private Parser parser;
     private Host host;
     private PrintWriter out;
-    String path;
+    String OutputPath;
 
     public Logger(Parser parser, Host host){
         pid = ProcessHandle.current().pid();
         out = new PrintWriter(new OutputStreamWriter(System.out));
 
-        this.path = path;
         this.parser = parser;
         this.host = host;
+    }
+
+    public void setOutputFilePath(String path){
+        this.OutputPath = path;
+    }
+
+    public void writeLinePL() {
+
     }
 
     /**
@@ -28,7 +35,7 @@ public class Logger {
         System.out.println("My PID: " + pid + "\n");
         System.out.println("From a new terminal type `kill -SIGINT " + pid + "` or `kill -SIGTERM " + pid + "` to stop processing packets\n");
 
-        System.out.println("My ID: " + myId + "\n");
+        System.out.println("My ID: " + myId + " My port: " + host.getPort() + "\n");
         System.out.println("List of resolved hosts is:");
         System.out.println("==========================");
         
