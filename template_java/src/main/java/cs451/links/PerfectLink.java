@@ -1,6 +1,9 @@
-package cs451;
+package cs451.links;
 
 import java.util.List;
+
+import cs451.Host;
+
 import java.util.ArrayList;
 import java.io.IOException;
 import java.net.DatagramPacket;

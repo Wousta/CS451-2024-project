@@ -15,6 +15,9 @@ import java.util.List;
 import java.util.Properties;
 import java.util.stream.Stream;
 
+import cs451.links.PerfectLink;
+import cs451.parsers.Parser;
+
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
@@ -121,6 +124,11 @@ public class Main {
 
         // TODO: Close resources, refactor later
         sock.close();
+
+        while (true) {
+            // Sleep for 1 hour
+            Thread.sleep(60L * 60 * 1000);
+        }
 
     }
 }

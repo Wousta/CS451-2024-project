@@ -4,6 +4,8 @@ import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.util.List;
 
+import cs451.parsers.Parser;
+
 public class Logger {
     private long pid;
     private Parser parser;
@@ -21,10 +23,6 @@ public class Logger {
 
     public void setOutputFilePath(String path){
         this.OutputPath = path;
-    }
-
-    public void writeLinePL() {
-
     }
 
     /**

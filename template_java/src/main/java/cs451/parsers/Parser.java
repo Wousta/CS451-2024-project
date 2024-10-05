@@ -1,6 +1,9 @@
-package cs451;
+package cs451.parsers;
 
 import java.util.List;
+
+import cs451.Constants;
+import cs451.Host;
 
 public class Parser {
 
