@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.Properties;
 import java.util.stream.Stream;
 
+import cs451.links.FairLossLink;
 import cs451.links.PerfectLink;
 import cs451.parsers.Parser;
 
@@ -84,7 +85,7 @@ public class Main {
                 String line = reader.readLine();
                 String[] parts = line.trim().split("\\s+");
                 msgsToSend = Integer.parseInt(parts[0]);
-                receiverId = Integer.parseInt(parts[1]);   // CAREFUL 
+                receiverId = Integer.parseInt(parts[1]);
             } catch (Exception e) {
                 System.err.println("Error while reading perfect links config");
                 e.printStackTrace();
@@ -96,21 +97,16 @@ public class Main {
                 System.out.println("I am the receiver with ID: " + myId + ", delivering messages...");
                 // After a process finishes broadcasting,
                 // it waits forever for the delivery of messages.
-                PerfectLink link = new PerfectLink(sock);
-                while (true) {
-                    //TODO: receive packet and process
-                    sock.receive(packet);
-                    ByteArrayInputStream bin =  new ByteArrayInputStream(packet.getData());
-                    DataInputStream din = new DataInputStream (bin);
-                    int val = din.read();
-                    System.out.println("Leido: " + val + " From IP | port: " + packet.getAddress().toString() + " | " + packet.getPort());
-                }
+                FairLossLink link = new FairLossLink(sock);
+                link.deliver();
             }
             else {
-                System.out.println("I am a sender with ID: " + myId + " Sending to ID: " + receiverId + ", Broadcasting messages...");
-                PerfectLink link = new PerfectLink(sock);
-                while(true){
-                    link.send(hosts.get(receiverId-1), packet);
+                // Sender
+                FairLossLink link = new FairLossLink(sock);
+                for(int i = 0; i < msgsToSend; i++) {
+                    Message msg = new Message(thisHost.getId(), i); 
+                    link.send(hosts.get(receiverId-1), msg);
+                    System.out.println("b " + i);
                 }
             }
 

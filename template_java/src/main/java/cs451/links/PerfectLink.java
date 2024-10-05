@@ -3,6 +3,7 @@ package cs451.links;
 import java.util.List;
 
 import cs451.Host;
+import cs451.Message;
 
 import java.util.ArrayList;
 import java.io.IOException;
@@ -12,9 +13,9 @@ import java.net.InetAddress;
 
 public class PerfectLink {
 
-    private List<DatagramPacket> delivered;
+    private List<Message> delivered;
     private DatagramPacket msg;
-    private DatagramSocket dest;
+    private DatagramSocket socket;
 
     public PerfectLink(){
         delivered = new ArrayList<>();
@@ -22,7 +23,7 @@ public class PerfectLink {
 
     public PerfectLink(DatagramSocket destination){
         delivered = new ArrayList<>();
-        dest = destination;   
+        socket = destination;   
     }
 
     // Thread to send
@@ -32,7 +33,7 @@ public class PerfectLink {
         byte[] data = {(byte) host.getId()};
         msg.setData(data);
         //System.out.println("Sending msg to port: " + host.getPort());
-        dest.send(msg);
+        socket.send(msg);
     }
 
     // Thread to deliver

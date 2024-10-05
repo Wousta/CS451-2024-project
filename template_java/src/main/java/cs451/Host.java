@@ -53,4 +53,8 @@ public class Host {
         return port;
     }
 
+    public InetAddress getInetAddress() throws UnknownHostException {
+        return InetAddress.getByName(getIp());
+    }
+
 }
