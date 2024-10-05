@@ -1,18 +1,23 @@
 package cs451;
 
 import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
+import java.io.DataInputStream;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.net.Socket;
+
 import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
-import java.util.Scanner;
 import java.util.stream.Stream;
+
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
 
 public class Main {
 
@@ -40,43 +45,28 @@ public class Main {
         String config = parser.config();
 
         initSignalHandlers();
-
-        // example
-        long pid = ProcessHandle.current().pid();
-        System.out.println("My PID: " + pid + "\n");
-        System.out.println("From a new terminal type `kill -SIGINT " + pid + "` or `kill -SIGTERM " + pid + "` to stop processing packets\n");
-
-        System.out.println("My ID: " + myId + "\n");
-        System.out.println("List of resolved hosts is:");
-        System.out.println("==========================");
+        List<Host> hosts = parser.hosts();
+        Host thisHost = hosts.get(myId);    // Host of this process
+        Logger logger = new Logger(parser, thisHost);
         
-        //List<Host> hosts = parser.hosts();
-        for (Host host: parser.hosts()) {
-            System.out.println(host.getId());
-            System.out.println("Human-readable IP: " + host.getIp());
-            System.out.println("Human-readable Port: " + host.getPort());
-            System.out.println();
-        }
-        System.out.println();
-
-        System.out.println("Path to output:");
-        System.out.println("===============");
-        System.out.println(parser.output() + "\n");
-
-        System.out.println("Path to config:");
-        System.out.println("===============");
-        System.out.println(config + "\n");
-
-        System.out.println("Doing some initialization\n");
         //TODO: INICIALIZATION
-        // Gets the name of the configuration in position 3 of [.. , example, configs, mode.config]
-        String mode;
+        // Create socket on my port
+        DatagramSocket sock;
+        DatagramPacket packet;
+
+        logger.printLayout();
+                  
+        String mode; // Name of the configuration to be run (perfect links, fifo broadcast, lattice agreement)
+
+        // Initialize mode and UDP socket and packet
         try{
+            sock = new DatagramSocket(thisHost.getPort(), InetAddress.getByName(thisHost.getIp()));
+            packet = new DatagramPacket(new byte[1], 1);
             mode = config.trim().split("/")[3];
             System.out.println("MODE: " + mode);
         }
-        catch(IndexOutOfBoundsException e){
-            System.err.println("Bad path to config file, does not have correct length");
+        catch(Exception e){
+            System.err.println("Bad initialization");
             e.printStackTrace();
             return;
         }
@@ -101,13 +91,38 @@ public class Main {
             } catch (Exception e) {
                 System.err.println("Error while reading perfect links config");
                 e.printStackTrace();
+                sock.close();
                 return;
             }
 
             if(confVals[1] == myId){
-                System.out.println("I am the receiver with ID: " + confVals[1]);
+                System.out.println("I am the receiver with ID: " + confVals[1] + ", delivering messages...");
+                // After a process finishes broadcasting,
+                // it waits forever for the delivery of messages.
+                int leidoCount = 0;
+                while (leidoCount < 16) {
+                    //TODO: receive packet and process
+                    sock.receive(packet);
+                    ByteArrayInputStream bin =  new ByteArrayInputStream(packet.getData());
+                    DataInputStream din = new DataInputStream (bin);
+                    int val = din.read();
+                    System.out.println("Leido: " + val);
+                    leidoCount++;
+                }
+                System.out.println("leidos = " + leidoCount);
             }
-            else System.out.println("I am a sender with ID: " + myId); 
+            else {
+                System.out.println("I am a sender with ID: " + myId + ", Broadcasting messages...");
+                Host receiver = hosts.get(confVals[1]);
+                packet.setAddress(InetAddress.getByName(receiver.getIp()));
+                packet.setPort(receiver.getPort());
+                System.out.println("Sender enters while loop to send");
+                while (true) {
+                    byte data[] = {(byte) thisHost.getId()};
+                    packet.setData(data);
+                    sock.send(packet);
+                }
+            }
 
         }
         else if(mode.equals("fifo-broadcast.config")){
@@ -117,14 +132,8 @@ public class Main {
             System.out.println("ENTERING LATTICE AGREEMENT MODE");
         }
 
+        // TODO: Close resources, refactor later
+        sock.close();
 
-        System.out.println("Broadcasting and delivering messages...\n");
-        // After a process finishes broadcasting,
-        // it waits forever for the delivery of messages.
-        while (true) {
-            //TODO: HEYYYY aqui se para el process
-            // Sleep for 1 hour
-            Thread.sleep(60 * 60 * 1000);
-        }
     }
 }
