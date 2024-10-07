@@ -2,6 +2,7 @@ package cs451;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.net.DatagramSocket;
 
 public class Host {
 
@@ -10,6 +11,7 @@ public class Host {
     private int id;
     private String ip;
     private int port = -1;
+    private DatagramSocket socket;
 
     public boolean populate(String idString, String ipString, String portString) {
         try {
@@ -41,6 +43,7 @@ public class Host {
         return true;
     }
 
+    // GETTERS ================================================
     public int getId() {
         return id;
     }
@@ -55,6 +58,19 @@ public class Host {
 
     public InetAddress getInetAddress() throws UnknownHostException {
         return InetAddress.getByName(getIp());
+    }
+
+    /**
+     * Non defensive implementation, the socket must be setted first or will return null
+     * @return The datagram socket of this host
+     */
+    public DatagramSocket getSocket() {
+        return socket;
+    }
+
+    // SETTERS ================================================
+    public void setSocket(DatagramSocket s) {
+        socket = s;
     }
 
 }

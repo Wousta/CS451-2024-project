@@ -44,27 +44,26 @@ public class Main {
     }
     public static void main(String[] args) throws InterruptedException, FileNotFoundException, IOException {
         Parser parser = new Parser(args);
+
         parser.parse();
+        
         int myId = parser.myId();
         String config = parser.config();
 
         initSignalHandlers();
+
         List<Host> hosts = parser.hosts();
         Host thisHost = hosts.get(myId-1);    // Host of this process
         Logger logger = new Logger(parser, thisHost);
+
         logger.printLayout();
         
-
-        //TODO: INICIALIZATION
-        // Create socket on my port
-        DatagramSocket sock;
-        DatagramPacket packet;       
+        //TODO: INICIALIZATION     
         String mode; // Name of the configuration to be run (perfect links, fifo broadcast, lattice agreement)
 
         // Initialize mode and UDP socket and packet
         try{
-            sock = new DatagramSocket(thisHost.getPort(), InetAddress.getByName(thisHost.getIp()));
-            packet = new DatagramPacket(new byte[1], 1);
+            thisHost.setSocket(new DatagramSocket(thisHost.getPort(), InetAddress.getByName(thisHost.getIp())));
             mode = config.trim().split("/")[3];
             System.out.println("MODE: " + mode);
         }
@@ -89,7 +88,7 @@ public class Main {
             } catch (Exception e) {
                 System.err.println("Error while reading perfect links config");
                 e.printStackTrace();
-                sock.close();
+                thisHost.getSocket().close();
                 return;
             }
 
@@ -97,12 +96,12 @@ public class Main {
                 System.out.println("I am the receiver with ID: " + myId + ", delivering messages...");
                 // After a process finishes broadcasting,
                 // it waits forever for the delivery of messages.
-                FairLossLink link = new FairLossLink(sock);
+                FairLossLink link = new FairLossLink(thisHost.getSocket());
                 link.deliver();
             }
             else {
                 // Sender
-                FairLossLink link = new FairLossLink(sock);
+                FairLossLink link = new FairLossLink(thisHost.getSocket());
                 for(int i = 0; i < msgsToSend; i++) {
                     Message msg = new Message(thisHost.getId(), i); 
                     link.send(hosts.get(receiverId-1), msg);
@@ -119,7 +118,7 @@ public class Main {
         }
 
         // TODO: Close resources, refactor later
-        sock.close();
+        thisHost.getSocket().close();
 
         while (true) {
             // Sleep for 1 hour

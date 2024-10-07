@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.net.UnknownHostException;
 
 import cs451.Host;
 import cs451.Message;
@@ -17,14 +18,18 @@ public class FairLossLink {
     }
 
 
-    public void send(Host host, Message msg) throws IOException {
+    public void send(Host host, Message msg) {
         byte[] buf = msg.serialize();
-        System.out.println("Enviando msg a dir: " + host.getIp() + " " + host.getInetAddress().toString() + " port: " + host.getPort());
-        socket.send(new DatagramPacket(buf, buf.length, host.getInetAddress(), host.getPort()));
+        try {
+            System.out.println("Enviando msg a dir: " + host.getIp() + " " + host.getInetAddress().toString() + " port: " + host.getPort());
+            socket.send(new DatagramPacket(buf, buf.length, host.getInetAddress(), host.getPort()));
+        } catch (Exception e) {
+            e.printStackTrace();
+        } 
     }
 
 
-    public void deliver() {
+    public Message deliver() {
         DatagramPacket p;
 
         while(true){
@@ -36,8 +41,7 @@ public class FairLossLink {
                 e.printStackTrace();
             }
             // TODO: actual delivery
-            Message m = Message.deSerialize(p.getData());
-            System.out.println("d " + m.getSenderId() + " " + m.getMsgId());
+            return Message.deSerialize(p.getData());
         }
     }
 
