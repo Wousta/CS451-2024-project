@@ -47,12 +47,10 @@ public class StubbornLink {
 
     public void send(Host h, Message m) {
         fll.send(h, m);
-        sent.add(m);
+        sent.offer(m);
     }
 
-    public void deliver() {
-        Message m = fll.deliver();
-        // TODO: activate perfect link deliver
-        System.out.println("d " + m.getSenderId() + " " + m.getMsgId());
+    public Message deliver() {
+        return fll.deliver();
     }
 }

@@ -37,14 +37,46 @@ public class Message {
 
     // TODO: use java serialize method, it is optimized
     public byte[] serialize(){
-        // TODO actual serialization and proper declaration of buffer
         byte[] buf = new byte[MSG_MAX_SIZE];
         buf[0] = (byte) senderId;
         buf[1] = (byte) msgId;
         return buf;
     }
 
+    // TODO: create the message buffer
     public static Message deSerialize(byte[] buf) {
         return new Message(Integer.valueOf(buf[0]), Integer.valueOf(buf[1]));
+    }
+
+    // equals and hashCode answers provided by grepper results
+    @Override
+	public boolean equals(Object o) { 
+
+		// If the object is compared with itself then return true 
+		if (o == this) { 
+			return true; 
+		} 
+
+		/* Check if o is an instance of Complex or not 
+		"null instanceof [type]" also returns false */
+		if (!(o instanceof Message)) { 
+			return false; 
+		} 
+		
+		// typecast o to Complex so that we can compare data members 
+		Message c = (Message) o; 
+		
+		// Compare the data members and return accordingly 
+		return Integer.compare(msgId, c.msgId) == 0
+				&& Integer.compare(senderId, c.senderId) == 0; 
+	}
+
+    @Override
+    public int hashCode() {
+        final int prime = 31;
+        int result = 1;
+        result = prime * result + Integer.hashCode(msgId);
+        result = prime * result + Integer.hashCode(senderId);
+        return result;
     }
 }

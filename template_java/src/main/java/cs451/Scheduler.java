@@ -10,6 +10,7 @@ import java.net.InetAddress;
 import java.net.SocketException;
 import java.net.UnknownHostException;
 
+import cs451.links.PerfectLink;
 import cs451.links.StubbornLink;
 
 public class Scheduler {
@@ -63,16 +64,17 @@ public class Scheduler {
         if(receiverId == thisHost.getId()){
 
             System.out.println("I am the receiver with ID: " + thisHost.getId() + ", delivering messages...");
-            StubbornLink link = new StubbornLink(thisHost, hosts);
+            PerfectLink link = new PerfectLink(thisHost, hosts);
             while(true){
                 link.deliver();
             }
         }
         else {
             // Sender
-            StubbornLink link = new StubbornLink(thisHost, hosts);
+            PerfectLink link = new PerfectLink(thisHost, hosts);
             for(int i = 0; i < msgsToSend; i++) {
-
+                
+                // We will probably need a blocking queue to not mess up sending concurrently
                 link.send(hosts.get(receiverId-1), new Message(thisHost.getId(), i));
                 System.out.println("b " + i);
 

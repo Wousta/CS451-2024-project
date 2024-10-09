@@ -1,44 +1,36 @@
 package cs451.links;
 
 import java.util.List;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 import cs451.Host;
 import cs451.Message;
 
-import java.util.ArrayList;
-import java.io.IOException;
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
-import java.net.InetAddress;
-
 public class PerfectLink {
 
-    private List<Message> delivered;
-    private DatagramPacket msg;
-    private DatagramSocket socket;
+    private static Queue<Message> delivered = new ConcurrentLinkedQueue<>();
+    private StubbornLink sl;
 
-    public PerfectLink(){
-        delivered = new ArrayList<>();
-    }
-
-    public PerfectLink(DatagramSocket destination){
-        delivered = new ArrayList<>();
-        socket = destination;   
+    public PerfectLink(Host thisHost, List<Host> hosts){
+        sl = new StubbornLink(thisHost, hosts);
     }
 
     // Thread to send
-    public void send(Host host, DatagramPacket msg) throws IOException{
-        msg.setAddress(InetAddress.getByName(host.getIp()));
-        msg.setPort(host.getPort());
-        byte[] data = {(byte) host.getId()};
-        msg.setData(data);
-        //System.out.println("Sending msg to port: " + host.getPort());
-        socket.send(msg);
+    public void send(Host h, Message m) {
+        sl.send(h, m);
     }
 
     // Thread to deliver
-    public void deliver(DatagramSocket s){
-        
-    }
+    public void deliver() {
+        Message m = sl.deliver();
 
+        if(!delivered.contains(m)){
+            delivered.offer(m);
+
+            // TODO: trigger actual ppl delivery and call logger
+            System.out.println("d " + m.getSenderId() + " " + m.getMsgId() + " delivered size: " + delivered.size());
+        }
+        else System.out.println("mensaje ya se delivereo");
+    }
 }
