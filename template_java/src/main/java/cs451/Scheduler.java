@@ -10,7 +10,6 @@ import java.net.InetAddress;
 import java.net.SocketException;
 import java.net.UnknownHostException;
 
-import cs451.links.FairLossLink;
 import cs451.links.StubbornLink;
 
 public class Scheduler {
@@ -20,20 +19,13 @@ public class Scheduler {
      */
     private Queue<Message> sent;
     private List<Host> hosts;
-
-    /**
-     * Id of this host
-     */
-    private int myId;
-
     private Host thisHost;
     
 
-    public Scheduler(int myId, List<Host> hosts) throws SocketException, UnknownHostException {
+    public Scheduler(Host host, List<Host> hosts) throws SocketException, UnknownHostException {
         sent = new ConcurrentLinkedQueue<>();
         this.hosts = hosts;
-        this.myId = myId;
-        thisHost = hosts.get(myId - 1);
+        thisHost = host;
 
         thisHost.setSocket(new DatagramSocket(thisHost.getPort(), InetAddress.getByName(thisHost.getIp())));
     }
@@ -68,9 +60,9 @@ public class Scheduler {
 
         }
 
-        if(receiverId == myId){
+        if(receiverId == thisHost.getId()){
 
-            System.out.println("I am the receiver with ID: " + myId + ", delivering messages...");
+            System.out.println("I am the receiver with ID: " + thisHost.getId() + ", delivering messages...");
             StubbornLink link = new StubbornLink(thisHost, hosts);
             while(true){
                 link.deliver();

@@ -62,7 +62,7 @@ public class Main {
         // Initialize mode and UDP socket and packet
         try{
 
-            scheduler = new Scheduler(parser.myId(), parser.hosts());
+            scheduler = new Scheduler(thisHost, parser.hosts());
             mode = config.trim().split("/")[3];
 
         }
