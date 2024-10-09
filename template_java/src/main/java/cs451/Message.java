@@ -16,6 +16,7 @@ public class Message {
     private int senderId;
 
     /**
+     * TODO: use actual length after testing
      * Maximum size of a message in UDP packet is 64KiB
      */
     public static final int MSG_MAX_SIZE = 16;
@@ -34,6 +35,7 @@ public class Message {
         return senderId;
     }
 
+    // TODO: use java serialize method, it is optimized
     public byte[] serialize(){
         // TODO actual serialization and proper declaration of buffer
         byte[] buf = new byte[MSG_MAX_SIZE];

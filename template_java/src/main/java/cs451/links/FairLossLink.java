@@ -1,6 +1,7 @@
 package cs451.links;
 
 import java.io.IOException;
+
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
@@ -16,7 +17,6 @@ public class FairLossLink {
     public FairLossLink(DatagramSocket socket) {
         this.socket = socket;
     }
-
 
     public void send(Host host, Message msg) {
         byte[] buf = msg.serialize();

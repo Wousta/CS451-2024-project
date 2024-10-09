@@ -42,73 +42,40 @@ public class Main {
             }
         });
     }
-    public static void main(String[] args) throws InterruptedException, FileNotFoundException, IOException {
+    public static void main(String[] args) throws InterruptedException, IOException {
         Parser parser = new Parser(args);
 
         parser.parse();
         
         int myId = parser.myId();
         String config = parser.config();
-
-        initSignalHandlers();
-
-        List<Host> hosts = parser.hosts();
-        Host thisHost = hosts.get(myId-1);    // Host of this process
+        Host thisHost = parser.hosts().get(myId);
         Logger logger = new Logger(parser, thisHost);
 
         logger.printLayout();
-        
-        //TODO: INICIALIZATION     
+
+        initSignalHandlers();
+
+        Scheduler scheduler;
         String mode; // Name of the configuration to be run (perfect links, fifo broadcast, lattice agreement)
 
         // Initialize mode and UDP socket and packet
         try{
-            thisHost.setSocket(new DatagramSocket(thisHost.getPort(), InetAddress.getByName(thisHost.getIp())));
+
+            scheduler = new Scheduler(parser.myId(), parser.hosts());
             mode = config.trim().split("/")[3];
-            System.out.println("MODE: " + mode);
+
         }
         catch(Exception e){
+
             System.err.println("Bad initialization");
             e.printStackTrace();
             return;
+            
         }
 
         if(mode.equals("perfect-links.config")){
-            System.out.println("ENTERING PERFECT LINKS MODE");
-            //TODO perf links
-            // Contains the values of the config file, first value m is number of messages to send, second value is receiver index
-            int msgsToSend;
-            int receiverId;
-            
-            try (BufferedReader reader = new BufferedReader(new FileReader(config))) {
-                String line = reader.readLine();
-                String[] parts = line.trim().split("\\s+");
-                msgsToSend = Integer.parseInt(parts[0]);
-                receiverId = Integer.parseInt(parts[1]);
-            } catch (Exception e) {
-                System.err.println("Error while reading perfect links config");
-                e.printStackTrace();
-                thisHost.getSocket().close();
-                return;
-            }
-
-            if(receiverId == myId){
-                System.out.println("I am the receiver with ID: " + myId + ", delivering messages...");
-                // After a process finishes broadcasting,
-                // it waits forever for the delivery of messages.
-                FairLossLink link = new FairLossLink(thisHost.getSocket());
-                link.deliver();
-            }
-            else {
-                // Sender
-                FairLossLink link = new FairLossLink(thisHost.getSocket());
-                for(int i = 0; i < msgsToSend; i++) {
-                    Message msg = new Message(thisHost.getId(), i); 
-                    link.send(hosts.get(receiverId-1), msg);
-                    System.out.println("b " + i);
-                }
-            }
-
+            scheduler.run(config);
         }
         else if(mode.equals("fifo-broadcast.config")){
             System.out.println("ENTERING FIFO BROADCAST MODE");
@@ -116,9 +83,6 @@ public class Main {
         else if(mode.equals("lattice-agreement.config")){
             System.out.println("ENTERING LATTICE AGREEMENT MODE");
         }
-
-        // TODO: Close resources, refactor later
-        thisHost.getSocket().close();
 
         while (true) {
             // Sleep for 1 hour
