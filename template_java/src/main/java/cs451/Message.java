@@ -28,7 +28,7 @@ public class Message {
     }
     
     public int getMsgId(){
-        return msgId;
+        return msgId + 1;
     }
 
     public int getSenderId(){

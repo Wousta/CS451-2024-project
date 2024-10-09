@@ -61,6 +61,15 @@ public class Parser {
         return idParser.getId();
     }
 
+    /**
+     * Main purpose is to avoid having to remember to substract 1 to my id
+     * each time we look for a host in the Hosts queue.
+     * @return Index of this host in the Hosts list.
+     */
+    public int myIndex() {
+        return idParser.getId() - 1;
+    }
+
     public List<Host> hosts() {
         return hostsParser.getHosts();
     }

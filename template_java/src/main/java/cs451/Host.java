@@ -44,8 +44,21 @@ public class Host {
     }
 
     // GETTERS ================================================
+    /**
+     * Do not use to get index of Host in hosts list
+     * @return Id of this host
+     */
     public int getId() {
         return id;
+    }
+
+    /**
+     * Main purpose is to avoid having to remember to substract 1 to my id
+     * each time we look for a host in the Hosts queue.
+     * @return Index of this host in the Hosts list.
+     */
+    public int getIndex() {
+        return id - 1;
     }
 
     public String getIp() {

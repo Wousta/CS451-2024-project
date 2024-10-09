@@ -31,18 +31,15 @@ public class FairLossLink {
 
     public Message deliver() {
         DatagramPacket p;
-
-        while(true){
-            p = new DatagramPacket(new byte[Message.MSG_MAX_SIZE], Message.MSG_MAX_SIZE);
-            System.out.println("Esperando nuevo paquete");
-            try {
-                socket.receive(p);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            // TODO: actual delivery
-            return Message.deSerialize(p.getData());
+        p = new DatagramPacket(new byte[Message.MSG_MAX_SIZE], Message.MSG_MAX_SIZE);
+        System.out.println("Esperando nuevo paquete");
+        try {
+            socket.receive(p);
+        } catch (IOException e) {
+            e.printStackTrace();
         }
+        // TODO: actual delivery
+        return Message.deSerialize(p.getData());
     }
 
 }

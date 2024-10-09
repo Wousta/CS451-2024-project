@@ -25,6 +25,7 @@ public class Scheduler {
      * Id of this host
      */
     private int myId;
+
     private Host thisHost;
     
 
@@ -32,7 +33,7 @@ public class Scheduler {
         sent = new ConcurrentLinkedQueue<>();
         this.hosts = hosts;
         this.myId = myId;
-        thisHost = hosts.get(myId);
+        thisHost = hosts.get(myId - 1);
 
         thisHost.setSocket(new DatagramSocket(thisHost.getPort(), InetAddress.getByName(thisHost.getIp())));
     }
@@ -71,8 +72,9 @@ public class Scheduler {
 
             System.out.println("I am the receiver with ID: " + myId + ", delivering messages...");
             StubbornLink link = new StubbornLink(thisHost, hosts);
-            link.deliver();
-
+            while(true){
+                link.deliver();
+            }
         }
         else {
             // Sender

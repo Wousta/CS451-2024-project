@@ -19,7 +19,7 @@ public class StubbornLink {
 
         @Override
         public void run() {
-            System.out.println("Running timerTask StubbornLinks");
+            System.out.println("Running timerTask StubbornLinks con sent size: " + sent.size());
             sent.forEach( m -> fll.send(hosts.get(m.getSenderId()), m));
         }
     
@@ -35,7 +35,7 @@ public class StubbornLink {
         timer.scheduleAtFixedRate(
             new SLTimerTask(),
             1000,
-            4000);
+            5000);
 
         fll = new FairLossLink(thisHost.getSocket());
         this.hosts = hosts;
@@ -52,8 +52,7 @@ public class StubbornLink {
 
     public void deliver() {
         Message m = fll.deliver();
+        // TODO: activate perfect link deliver
         System.out.println("d " + m.getSenderId() + " " + m.getMsgId());
-        // TODO: actual delivery to PL
     }
-
 }

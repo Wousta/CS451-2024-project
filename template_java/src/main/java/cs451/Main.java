@@ -49,7 +49,7 @@ public class Main {
         
         int myId = parser.myId();
         String config = parser.config();
-        Host thisHost = parser.hosts().get(myId);
+        Host thisHost = parser.hosts().get(parser.myIndex());
         Logger logger = new Logger(parser, thisHost);
 
         logger.printLayout();
