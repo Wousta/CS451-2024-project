@@ -60,10 +60,11 @@ public class FairLossLink {
             return (Message) in.readObject();
         } catch (Exception e) {
             // TODO Auto-generated catch block
+            System.out.println("Error deserializing");
             e.printStackTrace();
         }
 
-        System.err.println("Returning null message, should not be happening");
+        System.out.println("Returning null message, should not be happening");
         return null;
     }
 }
