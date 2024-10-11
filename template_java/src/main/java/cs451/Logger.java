@@ -3,6 +3,8 @@ package cs451;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.util.List;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.BlockingQueue;
 
 import cs451.parsers.Parser;
 
@@ -11,7 +13,7 @@ public class Logger {
     private Parser parser;
     private Host host;
     private PrintWriter out;
-    String OutputPath;
+    private static BlockingQueue<String> outPutMsgs = new LinkedBlockingQueue<>();
 
     public Logger(Parser parser, Host host){
         pid = ProcessHandle.current().pid();
@@ -21,8 +23,8 @@ public class Logger {
         this.host = host;
     }
 
-    public void setOutputFilePath(String path){
-        this.OutputPath = path;
+    public static void write(String msg) {
+        outPutMsgs.add(msg);
     }
 
     /**

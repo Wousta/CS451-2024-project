@@ -6,12 +6,11 @@ import cs451.Message;
 import java.util.Timer;
 import java.util.List;
 import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.TimerTask;
 
 public class StubbornLink {
 
-    private static Queue<Message> sent = new ConcurrentLinkedQueue<>();
+    private Queue<Message> sent;
     private List<Host> hosts; 
     private Timer timer;  
     private FairLossLink fll;
@@ -24,6 +23,7 @@ public class StubbornLink {
             5000);
 
         fll = new FairLossLink(thisHost.getSocket());
+        sent = thisHost.getSent();
         this.hosts = hosts;
     }
 
@@ -36,7 +36,7 @@ public class StubbornLink {
         return fll.deliver();
     }
 
-    public static Queue<Message> getSent() {
+    public Queue<Message> getSent() {
         return sent;
     }
 

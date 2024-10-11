@@ -2,18 +2,18 @@ package cs451.links;
 
 import java.util.List;
 import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
 
 import cs451.Host;
 import cs451.Message;
 
 public class PerfectLink {
 
-    private static Queue<Message> delivered = new ConcurrentLinkedQueue<>();
+    private Queue<Message> delivered;
     private StubbornLink sl;
 
     public PerfectLink(Host thisHost, List<Host> hosts){
         sl = new StubbornLink(thisHost, hosts);
+        delivered = thisHost.getDelivered();
     }
 
     // Thread to send

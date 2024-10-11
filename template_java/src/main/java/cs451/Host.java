@@ -2,6 +2,8 @@ package cs451;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.net.DatagramSocket;
 
 public class Host {
@@ -12,6 +14,8 @@ public class Host {
     private String ip;
     private int port = -1;
     private DatagramSocket socket;
+    private Queue<Message> sent = new ConcurrentLinkedQueue<>();
+    private Queue<Message> delivered = new ConcurrentLinkedQueue<>();
 
     public boolean populate(String idString, String ipString, String portString) {
         try {
@@ -79,6 +83,22 @@ public class Host {
      */
     public DatagramSocket getSocket() {
         return socket;
+    }
+
+    /**
+     * Returns the queue of sent messages of this host.
+     * @return the ConcurrentLinkedQueue for concurrent access with the sent messages
+     */
+    public Queue<Message> getSent() {
+        return sent;
+    }
+
+    /**
+     * Returns the queue of delivered messages of this host.
+     * @return the ConcurrentLinkedQueue for concurrent access with the delivered messages
+     */
+    public Queue<Message> getDelivered() {
+        return delivered;
     }
 
     // SETTERS ================================================
