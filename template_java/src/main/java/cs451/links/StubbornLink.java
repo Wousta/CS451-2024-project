@@ -11,20 +11,6 @@ import java.util.TimerTask;
 
 public class StubbornLink {
 
-    /**
-     * Timer service of StubbornLinks, it resends all messages
-     * in intervals using TimerTask java library class spec.
-     */
-    public class SLTimerTask extends TimerTask{
-
-        @Override
-        public void run() {
-            System.out.println("Running timerTask StubbornLinks con sent size: " + sent.size());
-            sent.forEach( m -> fll.send(hosts.get(m.getSenderId()), m));
-        }
-    
-    }
-
     private static Queue<Message> sent = new ConcurrentLinkedQueue<>();
     private List<Host> hosts; 
     private Timer timer;  
@@ -41,10 +27,6 @@ public class StubbornLink {
         this.hosts = hosts;
     }
 
-    public static Queue<Message> getSent() {
-        return sent;
-    }
-
     public void send(Host h, Message m) {
         fll.send(h, m);
         sent.offer(m);
@@ -52,5 +34,23 @@ public class StubbornLink {
 
     public Message deliver() {
         return fll.deliver();
+    }
+
+    public static Queue<Message> getSent() {
+        return sent;
+    }
+
+    /**
+     * Timer service of StubbornLinks, it resends all messages
+     * in intervals using TimerTask java library class spec.
+     */
+    public class SLTimerTask extends TimerTask{
+
+        @Override
+        public void run() {
+            System.out.println("Running timerTask StubbornLinks con sent size: " + sent.size());
+            sent.forEach( m -> fll.send(hosts.get(m.getSenderId()), m));
+        }
+    
     }
 }

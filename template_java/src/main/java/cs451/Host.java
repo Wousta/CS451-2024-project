@@ -83,6 +83,7 @@ public class Host {
 
     // SETTERS ================================================
     public void setSocket(DatagramSocket s) {
+        if(socket != null) socket.close();
         socket = s;
     }
 

@@ -47,7 +47,6 @@ public class Main {
 
         parser.parse();
         
-        int myId = parser.myId();
         String config = parser.config();
         Host thisHost = parser.hosts().get(parser.myIndex());
         Logger logger = new Logger(parser, thisHost);
@@ -59,7 +58,6 @@ public class Main {
         Scheduler scheduler;
         String mode; // Name of the configuration to be run (perfect links, fifo broadcast, lattice agreement)
 
-        // Initialize mode and UDP socket and packet
         try{
 
             scheduler = new Scheduler(thisHost, parser.hosts());
