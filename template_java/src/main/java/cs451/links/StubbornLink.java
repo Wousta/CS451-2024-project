@@ -44,7 +44,7 @@ public class StubbornLink {
      * Timer service of StubbornLinks, it resends all messages
      * in intervals using TimerTask java library class spec.
      */
-    public class SLTimerTask extends TimerTask{
+    private class SLTimerTask extends TimerTask{
 
         @Override
         public void run() {

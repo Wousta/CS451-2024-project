@@ -82,6 +82,10 @@ public class Main {
             System.out.println("ENTERING LATTICE AGREEMENT MODE");
         }
 
+        
+
+        //TODO: wait for threads to finish
+
         while (true) {
             // Sleep for 1 hour
             Thread.sleep(60L * 60 * 1000);

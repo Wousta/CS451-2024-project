@@ -27,6 +27,8 @@ public class PerfectLink {
 
         if(!delivered.contains(m)){
             delivered.offer(m);
+            
+            // TODO: ack of message to not send it anymore
 
             // TODO: trigger actual ppl delivery and call logger
             System.out.println("d " + m.getSenderId() + " " + m.getMsgId() + " delivered size: " + delivered.size());

@@ -73,9 +73,10 @@ public class Scheduler {
             // Sender
             PerfectLink link = new PerfectLink(thisHost, hosts);
             for(int i = 0; i < msgsToSend; i++) {
-                
+                Message m = new Message(thisHost.getId(), i, System.currentTimeMillis(), null);
+
                 // We will probably need a blocking queue to not mess up sending concurrently
-                link.send(hosts.get(receiverId-1), new Message(thisHost.getId(), i));
+                link.send(hosts.get(receiverId-1), m);
                 System.out.println("b " + i);
 
             }

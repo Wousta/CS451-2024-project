@@ -1,9 +1,27 @@
 package cs451;
 
+import java.io.Serializable;
+
 /**
  * Up to 8 can be stored in a single packet
  */
-public class Message {
+public class Message implements Serializable{
+
+    /**
+     * The time when the message was created
+     */
+    private final long timeStampMs;
+
+    /**
+     * TODO: use actual length after testing
+     * Maximum size of a message in UDP packet is 64KiB
+     */
+    public static final int MSG_MAX_SIZE = 64;
+
+    /**
+     * The message content
+     */
+    private final byte[] data;
 
     /**
      * Sequence number of the message
@@ -15,16 +33,12 @@ public class Message {
      */
     private int senderId;
 
-    /**
-     * TODO: use actual length after testing
-     * Maximum size of a message in UDP packet is 64KiB
-     */
-    public static final int MSG_MAX_SIZE = 16;
 
-
-    public Message(int senderId, int msgId) {
+    public Message(int senderId, int msgId, long timeStampMs, byte[] data) {
         this.senderId = senderId;
         this.msgId = msgId;
+        this.timeStampMs = timeStampMs;
+        this.data = data;
     }
     
     public int getMsgId(){
@@ -35,17 +49,12 @@ public class Message {
         return senderId;
     }
 
-    // TODO: use java serialize method, it is optimized
-    public byte[] serialize(){
-        byte[] buf = new byte[MSG_MAX_SIZE];
-        buf[0] = (byte) senderId;
-        buf[1] = (byte) msgId;
-        return buf;
+    public long getTimeStampMs() {
+        return timeStampMs;
     }
 
-    // TODO: create the message buffer
-    public static Message deSerialize(byte[] buf) {
-        return new Message(Integer.valueOf(buf[0]), Integer.valueOf(buf[1]));
+    public byte[] getData() {
+        return data;
     }
 
     // equals and hashCode answers provided by grepper results
