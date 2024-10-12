@@ -13,6 +13,7 @@ public class Host {
     private int id;
     private String ip;
     private int port = -1;
+    private String outputPath;
     private DatagramSocket socket;
     private Queue<Message> sent = new ConcurrentLinkedQueue<>();
     private Queue<Message> delivered = new ConcurrentLinkedQueue<>();
@@ -101,10 +102,19 @@ public class Host {
         return delivered;
     }
 
+    public String getOutputPath() {
+        assert outputPath != null : "outPutPath should not be null when calling get";
+        return outputPath;
+    }
+
     // SETTERS ================================================
     public void setSocket(DatagramSocket s) {
         if(socket != null) socket.close();
         socket = s;
+    }
+
+    public void setOutputPath(String outputPath) {
+        this.outputPath = outputPath;
     }
 
 }

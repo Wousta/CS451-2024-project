@@ -11,7 +11,7 @@ import java.net.SocketException;
 import java.net.UnknownHostException;
 
 import cs451.links.PerfectLink;
-import cs451.links.StubbornLink;
+import cs451.parsers.Parser;
 
 public class Scheduler {
 
@@ -21,14 +21,16 @@ public class Scheduler {
     private Queue<Message> sent;
     private List<Host> hosts;
     private Host thisHost;
-    
+    private Logger logger;
 
-    public Scheduler(Host host, List<Host> hosts) throws SocketException, UnknownHostException {
+    public Scheduler(Parser parser, Logger logger) throws SocketException, UnknownHostException {
         sent = new ConcurrentLinkedQueue<>();
-        this.hosts = hosts;
-        thisHost = host;
+        this.hosts = parser.hosts();
+        thisHost = hosts.get(parser.myIndex());
 
         thisHost.setSocket(new DatagramSocket(thisHost.getPort(), InetAddress.getByName(thisHost.getIp())));
+        thisHost.setOutputPath(parser.output());
+        this.logger = logger;
     }
     
     public Queue<Message> getSent() {
@@ -61,22 +63,21 @@ public class Scheduler {
 
         }
 
-        if(receiverId == thisHost.getId()){
-
+        if(receiverId == thisHost.getId()) {
             System.out.println("I am the receiver with ID: " + thisHost.getId() + ", delivering messages...");
-            PerfectLink link = new PerfectLink(thisHost, hosts);
+            PerfectLink link = new PerfectLink(thisHost, hosts, logger);
             while(true){
                 link.deliver();
             }
         }
         else {
             // Sender
-            PerfectLink link = new PerfectLink(thisHost, hosts);
-            for(int i = 0; i < msgsToSend; i++) {
+            PerfectLink link = new PerfectLink(thisHost, hosts, logger);
+            for(int i = 1; i <= msgsToSend; i++) {
                 Message m = new Message(thisHost.getId(), i, System.currentTimeMillis(), null);
-
                 // We will probably need a blocking queue to not mess up sending concurrently
                 link.send(hosts.get(receiverId-1), m);
+                logger.addLine("b " + i);
                 System.out.println("b " + i);
 
             }

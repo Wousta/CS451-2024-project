@@ -24,6 +24,7 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 
 public class Main {
+    private static Logger logger;
 
     private static void handleSignal() {
         //immediately stop network packet processing
@@ -31,6 +32,7 @@ public class Main {
 
         //write/flush output file if necessary
         System.out.println("Writing output.");
+        logger.flush();
     }
 
     private static void initSignalHandlers() {
@@ -44,14 +46,11 @@ public class Main {
     }
     public static void main(String[] args) throws InterruptedException, IOException {
         Parser parser = new Parser(args);
-
         parser.parse();
         
         String config = parser.config();
         Host thisHost = parser.hosts().get(parser.myIndex());
-        Logger logger = new Logger(parser, thisHost);
-
-        logger.printLayout();
+        logger = new Logger(parser.output());
 
         initSignalHandlers();
 
@@ -60,7 +59,7 @@ public class Main {
 
         try{
 
-            scheduler = new Scheduler(thisHost, parser.hosts());
+            scheduler = new Scheduler(parser, logger);
             mode = config.trim().split("/")[3];
 
         }
@@ -72,6 +71,32 @@ public class Main {
             
         }
 
+        /////////////////////////////////////////////////////////////////////////////////
+        long pid = ProcessHandle.current().pid();
+        System.out.println("My PID: " + pid + "\n"
+                        + "From a new terminal type `kill -SIGINT " + pid + "` or `kill -SIGTERM " + pid + "` to stop processing packets\n"
+                        + "My ID: " + parser.myId() + " My port: " + thisHost.getPort() + "\n"
+                        + "List of resolved hosts is:\n"
+                        + "==========================\n");
+        
+        List<Host> hosts = parser.hosts();
+        for (Host host: hosts) {
+            System.out.println(host.getId() + "\n"
+                            + "Human-readable IP: " + host.getIp() + "\n"
+                            + "Human-readable Port: " + host.getPort() + "\n\n");
+
+        }
+
+        System.out.println("\nPath to output:\n"
+                        + "===============\n"
+                        + parser.output() + "\n");
+
+        System.out.println("Path to config:\n"
+                        + "===============\n"
+                        + parser.config() + "\n"
+                        + "Doing some initialization\n");
+        /////////////////////////////////////////////////////////////////////////////////
+
         if(mode.equals("perfect-links.config")){
             scheduler.run(config);
         }
@@ -82,11 +107,10 @@ public class Main {
             System.out.println("ENTERING LATTICE AGREEMENT MODE");
         }
 
-        
-
         //TODO: wait for threads to finish
 
         while (true) {
+            System.out.println("Go sleep");
             // Sleep for 1 hour
             Thread.sleep(60L * 60 * 1000);
         }

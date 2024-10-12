@@ -1,63 +1,46 @@
 package cs451;
 
+import java.io.BufferedWriter;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
-import java.util.List;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.Queue;
 import java.util.concurrent.BlockingQueue;
 
-import cs451.parsers.Parser;
-
 public class Logger {
-    private long pid;
-    private Parser parser;
-    private Host host;
-    private PrintWriter out;
-    private static BlockingQueue<String> outPutMsgs = new LinkedBlockingQueue<>();
+    private static final BlockingQueue<String> outPutMsgs = new LinkedBlockingQueue<>();
+    private BufferedWriter writer;
 
-    public Logger(Parser parser, Host host){
-        pid = ProcessHandle.current().pid();
-        out = new PrintWriter(new OutputStreamWriter(System.out));
-
-        this.parser = parser;
-        this.host = host;
-    }
-
-    public static void write(String msg) {
-        outPutMsgs.add(msg);
-    }
-
-    /**
-     * Print initial configuration of the hosts IPs, paths, etc
-     */
-    public void printLayout(){
-        int myId = parser.myId();
-        System.out.println("My PID: " + pid + "\n");
-        System.out.println("From a new terminal type `kill -SIGINT " + pid + "` or `kill -SIGTERM " + pid + "` to stop processing packets\n");
-
-        System.out.println("My ID: " + myId + " My port: " + host.getPort() + "\n");
-        System.out.println("List of resolved hosts is:");
-        System.out.println("==========================");
-        
-        List<Host> hosts = parser.hosts();
-        for (Host host: hosts) {
-            System.out.println(host.getId());
-            System.out.println("Human-readable IP: " + host.getIp());
-            System.out.println("Human-readable Port: " + host.getPort());
-            System.out.println();
+    public Logger(String path){
+        try {
+            writer = new BufferedWriter(new FileWriter(path), 32768);
+        } catch (IOException e) {
+            System.out.println("Exception in logger constructor");
+            e.printStackTrace();
         }
-        System.out.println();
-
-        System.out.println("Path to output:");
-        System.out.println("===============");
-        System.out.println(parser.output() + "\n");
-
-        System.out.println("Path to config:");
-        System.out.println("===============");
-        System.out.println(parser.config() + "\n");
-
-        System.out.println("Doing some initialization\n");
     }
 
+    // TODO: concurrent writing and such
+    public void addLine(String msg) {
+        try {
+            writer.write(msg);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void flush() {
+        try {
+            writer.flush();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public Queue<String> getMessages(){
+        return outPutMsgs;
+    }
 
 }

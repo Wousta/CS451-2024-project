@@ -5,15 +5,18 @@ import java.util.Queue;
 
 import cs451.Host;
 import cs451.Message;
+import cs451.Logger;
 
 public class PerfectLink {
 
     private Queue<Message> delivered;
     private StubbornLink sl;
+    private Logger logger;
 
-    public PerfectLink(Host thisHost, List<Host> hosts){
+    public PerfectLink(Host thisHost, List<Host> hosts, Logger logger){
         sl = new StubbornLink(thisHost, hosts);
         delivered = thisHost.getDelivered();
+        this.logger = logger;
     }
 
     // Thread to send
@@ -32,6 +35,7 @@ public class PerfectLink {
 
             // TODO: trigger actual ppl delivery and call logger
             System.out.println("d " + m.getSenderId() + " " + m.getMsgId() + " delivered size: " + delivered.size());
+            logger.addLine("d " + m.getSenderId() + " " + m.getMsgId());
         }
         else System.out.println("mensaje ya se delivereo");
     }
