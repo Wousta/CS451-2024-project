@@ -32,6 +32,7 @@ public class Main {
 
         //write/flush output file if necessary
         System.out.println("Writing output.");
+        //logger.addLine("signal called");
         logger.flush();
     }
 
@@ -47,33 +48,32 @@ public class Main {
     public static void main(String[] args) throws InterruptedException, IOException {
         Parser parser = new Parser(args);
         parser.parse();
-        
+    
+        logger = new Logger(parser.output());
         String config = parser.config();
         Host thisHost = parser.hosts().get(parser.myIndex());
-        logger = new Logger(parser.output());
+        Scheduler scheduler;
+        int[] input;
+
+        System.out.println("output: " + parser.output());
 
         initSignalHandlers();
 
-        Scheduler scheduler;
-        String mode; // Name of the configuration to be run (perfect links, fifo broadcast, lattice agreement)
-
-        try{
-
+        try (BufferedReader reader = new BufferedReader(new FileReader(config))) {
+            String[] parts = reader.readLine().trim().split("\\s+");
+            input = Arrays.stream(parts).mapToInt(Integer::parseInt).toArray();
             scheduler = new Scheduler(parser, logger);
-            mode = config.trim().split("/")[3];
-
         }
         catch(Exception e){
-
             System.err.println("Bad initialization");
             e.printStackTrace();
             return;
-            
         }
 
         /////////////////////////////////////////////////////////////////////////////////
         long pid = ProcessHandle.current().pid();
-        System.out.println("My PID: " + pid + "\n"
+        System.out.println("conf: " + config + " output: " + parser.output() + " n hosts: " + parser.hosts().size() + "\n"
+                        + "My PID: " + pid + "\n"
                         + "From a new terminal type `kill -SIGINT " + pid + "` or `kill -SIGTERM " + pid + "` to stop processing packets\n"
                         + "My ID: " + parser.myId() + " My port: " + thisHost.getPort() + "\n"
                         + "List of resolved hosts is:\n"
@@ -97,14 +97,19 @@ public class Main {
                         + "Doing some initialization\n");
         /////////////////////////////////////////////////////////////////////////////////
 
-        if(mode.equals("perfect-links.config")){
-            scheduler.run(config);
-        }
-        else if(mode.equals("fifo-broadcast.config")){
-            System.out.println("ENTERING FIFO BROADCAST MODE");
-        }
-        else if(mode.equals("lattice-agreement.config")){
-            System.out.println("ENTERING LATTICE AGREEMENT MODE");
+        switch (input.length) {
+            case 1:
+                scheduler.runFIFO(input);
+                break;
+            case 2:
+                scheduler.runPerfect(input);
+                break;
+            case 3:
+                scheduler.runLattice(input);
+                break;
+            default:
+                System.out.println("Configuration mode not recognized");
+                break;
         }
 
         //TODO: wait for threads to finish

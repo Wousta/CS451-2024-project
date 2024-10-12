@@ -42,7 +42,7 @@ public class Message implements Serializable{
     }
     
     public int getMsgId(){
-        return msgId + 1;
+        return msgId;
     }
 
     public int getSenderId(){

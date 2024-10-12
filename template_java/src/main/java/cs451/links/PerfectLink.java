@@ -34,9 +34,9 @@ public class PerfectLink {
             // TODO: ack of message to not send it anymore
 
             // TODO: trigger actual ppl delivery and call logger
-            System.out.println("d " + m.getSenderId() + " " + m.getMsgId() + " delivered size: " + delivered.size());
+            //System.out.println("d " + m.getSenderId() + " " + m.getMsgId() + " delivered size: " + delivered.size());
             logger.addLine("d " + m.getSenderId() + " " + m.getMsgId());
         }
-        else System.out.println("mensaje ya se delivereo");
+        //else System.out.println("mensaje ya se delivereo");
     }
 }

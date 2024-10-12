@@ -1,5 +1,6 @@
 package cs451;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -41,27 +42,12 @@ public class Scheduler {
         return hosts;
     }
 
-    protected void run(String config) {
+    protected void runPerfect(int[] params) {
         System.out.println("ENTERING PERFECT LINKS MODE");
         //TODO perf links
         // Contains the values of the config file, first value m is number of messages to send, second value is receiver index
-        int msgsToSend;
-        int receiverId;
-        
-        try (BufferedReader reader = new BufferedReader(new FileReader(config))) {
-
-            String[] parts = reader.readLine().trim().split("\\s+");
-            msgsToSend = Integer.parseInt(parts[0]);
-            receiverId = Integer.parseInt(parts[1]);
-
-        } catch (Exception e) {
-
-            System.err.println("Error while reading perfect links config");
-            e.printStackTrace();
-            thisHost.getSocket().close();
-            return;
-
-        }
+        int msgsToSend = params[0];
+        int receiverId = params[1];
 
         if(receiverId == thisHost.getId()) {
             System.out.println("I am the receiver with ID: " + thisHost.getId() + ", delivering messages...");
@@ -72,20 +58,37 @@ public class Scheduler {
         }
         else {
             // Sender
+            System.out.println("I am the sender with ID" + thisHost.getId() + ", sending messages...");
             PerfectLink link = new PerfectLink(thisHost, hosts, logger);
             for(int i = 1; i <= msgsToSend; i++) {
                 Message m = new Message(thisHost.getId(), i, System.currentTimeMillis(), null);
                 // We will probably need a blocking queue to not mess up sending concurrently
                 link.send(hosts.get(receiverId-1), m);
-                logger.addLine("b " + i);
-                System.out.println("b " + i);
-
+                String line = "b " + i;
+                logger.addLine(line);
             }
+            // int i = 1;
+            // while(true) {
+            //     Message m = new Message(thisHost.getId(), i, System.currentTimeMillis(), null);
+            //         // We will probably need a blocking queue to not mess up sending concurrently
+            //     link.send(hosts.get(receiverId-1), m);
+            //     logger.addLine("b " + i);
+            //     //System.out.println("b " + i);
+            //     i++;
+            // }
         }
 
         /**
          * Close resources
          */
         //thisHost.getSocket().close();
+    }
+
+    protected void runFIFO(int[] params) {
+        System.out.println("FIFO not yet implemented");
+    }
+
+    protected void runLattice(int[] params) {
+        System.out.println("Lattice agreement not yet implemented");
     }
 }

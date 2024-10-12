@@ -25,7 +25,7 @@ public class Logger {
     // TODO: concurrent writing and such
     public void addLine(String msg) {
         try {
-            writer.write(msg);
+            writer.write(msg + "\n");
         } catch (IOException e) {
             e.printStackTrace();
         }

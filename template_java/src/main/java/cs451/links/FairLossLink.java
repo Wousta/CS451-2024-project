@@ -23,7 +23,7 @@ public class FairLossLink {
     public void send(Host host, Message msg) {
         try {
             byte[] buf = serialize(msg);
-            System.out.println("Enviando msg a dir: " + host.getIp() + " " + host.getInetAddress().toString() + " port: " + host.getPort());
+            //System.out.println("Enviando msg a dir: " + host.getIp() + " " + host.getInetAddress().toString() + " port: " + host.getPort());
             socket.send(new DatagramPacket(buf, buf.length, host.getInetAddress(), host.getPort()));
         } catch (IOException e) {
             e.printStackTrace();
@@ -34,7 +34,6 @@ public class FairLossLink {
     public Message deliver() {
         DatagramPacket p;
         p = new DatagramPacket(new byte[Message.MSG_MAX_SIZE], Message.MSG_MAX_SIZE);
-        System.out.println("Esperando nuevo paquete");
         try {
             socket.receive(p);
         } catch (IOException e) {
