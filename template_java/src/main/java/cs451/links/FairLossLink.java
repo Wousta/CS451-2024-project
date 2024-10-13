@@ -11,6 +11,10 @@ import java.net.DatagramSocket;
 import cs451.Host;
 import cs451.Message;
 
+/**
+ * Can send and deliver Messages using UDP packets.
+ * Use it inside Stubbornlink to guarantee Fair-loss, finite duplication and no creation properties
+ */
 public class FairLossLink {
 
     private final DatagramSocket socket;
@@ -19,7 +23,11 @@ public class FairLossLink {
         this.socket = socket;
     }
 
-    // Super mega ugly Java code
+    /**
+     * Serializes the message and sends it to specified host through a DatagramSocket
+     * @param host target host that receives the message
+     * @param msg data to send
+     */
     public void send(Host host, Message msg) {
         try {
             byte[] buf = serialize(msg);
@@ -31,6 +39,10 @@ public class FairLossLink {
     }
 
 
+    /**
+     * Waits for a DatagramPacket and returns it deserialized into Message
+     * @return the deserialized Message
+     */
     public Message deliver() {
         DatagramPacket p;
         p = new DatagramPacket(new byte[Message.MSG_MAX_SIZE], Message.MSG_MAX_SIZE);
@@ -40,7 +52,7 @@ public class FairLossLink {
             e.printStackTrace();
         }
 
-        return deSerialize(p.getData());
+        return (Message)deSerialize(p.getData());
     }
 
     
@@ -53,10 +65,10 @@ public class FairLossLink {
         } 
     }
 
-    private Message deSerialize(byte[] bytes) {
+    private Object deSerialize(byte[] bytes) {
         try (ByteArrayInputStream bis = new ByteArrayInputStream(bytes);
             ObjectInputStream in = new ObjectInputStream(bis)) {
-            return (Message) in.readObject();
+            return in.readObject();
         } catch (Exception e) {
             // TODO Auto-generated catch block
             System.out.println("Error deserializing");

@@ -8,6 +8,9 @@ import java.util.List;
 import java.util.Queue;
 import java.util.TimerTask;
 
+/**
+ * Use it inside PerfectLink to guarantee Stubborn delivery.
+ */
 public class StubbornLink {
 
     private Queue<Message> sent;
