@@ -16,26 +16,17 @@ import cs451.parsers.Parser;
 
 public class Scheduler {
 
-    /**
-     * Concurrent queue of sent messages
-     */
-    private Queue<Message> sent;
     private List<Host> hosts;
     private Host thisHost;
     private Logger logger;
 
     public Scheduler(Parser parser, Logger logger) throws SocketException, UnknownHostException {
-        sent = new ConcurrentLinkedQueue<>();
         this.hosts = parser.hosts();
         thisHost = hosts.get(parser.myIndex());
 
         thisHost.setSocket(new DatagramSocket(thisHost.getPort(), InetAddress.getByName(thisHost.getIp())));
         thisHost.setOutputPath(parser.output());
         this.logger = logger;
-    }
-    
-    public Queue<Message> getSent() {
-        return sent;
     }
 
     public List<Host> getHosts() {
@@ -62,20 +53,9 @@ public class Scheduler {
             PerfectLink link = new PerfectLink(thisHost, hosts, logger);
             for(int i = 1; i <= msgsToSend; i++) {
                 Message m = new Message(thisHost.getId(), i, System.currentTimeMillis(), null);
-                // We will probably need a blocking queue to not mess up sending concurrently
                 link.send(hosts.get(receiverId-1), m);
-                String line = "b " + i;
-                logger.addLine(line);
+                logger.addLine("b " + i);
             }
-            // int i = 1;
-            // while(true) {
-            //     Message m = new Message(thisHost.getId(), i, System.currentTimeMillis(), null);
-            //         // We will probably need a blocking queue to not mess up sending concurrently
-            //     link.send(hosts.get(receiverId-1), m);
-            //     logger.addLine("b " + i);
-            //     //System.out.println("b " + i);
-            //     i++;
-            // }
         }
 
         /**

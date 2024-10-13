@@ -16,7 +16,7 @@ public class Message implements Serializable{
      * TODO: use actual length after testing
      * Maximum size of a message in UDP packet is 64KiB
      */
-    public static final int MSG_MAX_SIZE = 2048;
+    public static final int MSG_MAX_SIZE = 4096;
 
     /**
      * The message content
