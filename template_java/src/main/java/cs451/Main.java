@@ -1,27 +1,13 @@
 package cs451;
 
 import java.io.BufferedReader;
-import java.io.ByteArrayInputStream;
-import java.io.DataInputStream;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.Properties;
-import java.util.stream.Stream;
 
-import cs451.links.FairLossLink;
-import cs451.links.PerfectLink;
 import cs451.parsers.Parser;
-
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
-import java.net.InetAddress;
 
 public class Main {
     private static Logger logger;
