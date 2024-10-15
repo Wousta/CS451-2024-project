@@ -43,16 +43,17 @@ public class FairLossLink {
      * Waits for a DatagramPacket and returns it deserialized into Message
      * @return the deserialized Message
      */
+    // TODO: a thread has to be used to keep listening and appending received messages, while another thread processes them
     public Message deliver() {
-        DatagramPacket p;
-        p = new DatagramPacket(new byte[Message.MSG_MAX_SIZE], Message.MSG_MAX_SIZE);
+        DatagramPacket packet;
+        packet = new DatagramPacket(new byte[Message.MSG_MAX_SIZE], Message.MSG_MAX_SIZE);
         try {
-            socket.receive(p);
+            socket.receive(packet);
         } catch (IOException e) {
             e.printStackTrace();
         }
 
-        return (Message)deSerialize(p.getData());
+        return (Message)deSerialize(packet.getData());
     }
 
     

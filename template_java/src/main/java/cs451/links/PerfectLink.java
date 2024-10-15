@@ -1,5 +1,7 @@
 package cs451.links;
 
+import java.io.ByteArrayInputStream;
+import java.io.ObjectInputStream;
 import java.util.List;
 import java.util.Queue;
 
@@ -14,7 +16,7 @@ public class PerfectLink {
     private Logger logger;
 
     public PerfectLink(Host thisHost, List<Host> hosts, Logger logger){
-        sl = new StubbornLink(thisHost, hosts);
+        sl = new StubbornLink(thisHost, hosts, logger);
         delivered = thisHost.getDelivered();
         this.logger = logger;
     }
@@ -26,17 +28,29 @@ public class PerfectLink {
 
     // Thread to deliver
     public void deliver() {
-        Message m = sl.deliver();
+        Message msg = sl.deliver();
 
-        if(!delivered.contains(m)){
-            delivered.offer(m);
+        if(!delivered.contains(msg)){
+            delivered.offer(msg);
             
             // TODO: ack of message to not send it anymore
-
-            // TODO: trigger actual ppl delivery and call logger
-            //System.out.println("d " + m.getSenderId() + " " + m.getMsgId() + " delivered size: " + delivered.size());
-            logger.addLine("d " + m.getSenderId() + " " + m.getMsgId());
+            logger.addLine("d " + msg.getSenderId() + " " + (String)deSerialize(msg.getData()));
+            //System.out.println("d " + msg.getSenderId() + " " + msg.getMsgId());
         }
-        //else System.out.println("mensaje ya se delivereo");
+
+        else System.out.println("message already delivered id: " + msg.getMsgId() + " sender: " + msg.getSenderId());
+    }
+
+    private Object deSerialize(byte[] bytes) {
+        try (ByteArrayInputStream bis = new ByteArrayInputStream(bytes);
+            ObjectInputStream in = new ObjectInputStream(bis)) {
+            return in.readObject();
+        } catch (Exception e) {
+            System.out.println("Error deserializing");
+            e.printStackTrace();
+        }
+
+        // Returning null message, should not be happening"
+        return null;
     }
 }

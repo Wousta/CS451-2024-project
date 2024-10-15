@@ -19,6 +19,12 @@ public class Message implements Serializable{
     public static final int MSG_MAX_SIZE = 4096;
 
     /**
+     * if true, this is an ack message and therefore contains the indexes of
+     * the acked messages by a receiver process
+     */
+    private boolean isAckMsg = false;
+
+    /**
      * The message content
      */
     private final byte[] data;
@@ -40,6 +46,14 @@ public class Message implements Serializable{
         this.timeStampMs = timeStampMs;
         this.data = data;
     }
+
+    public Message(int senderId, int msgId, long timeStampMs, byte[] data, boolean isAckMsg) {
+        this.senderId = senderId;
+        this.msgId = msgId;
+        this.timeStampMs = timeStampMs;
+        this.data = data;
+        this.isAckMsg = isAckMsg;
+    }
     
     public int getMsgId(){
         return msgId;
@@ -51,6 +65,10 @@ public class Message implements Serializable{
 
     public long getTimeStampMs() {
         return timeStampMs;
+    }
+
+    public boolean isAckMsg() {
+        return isAckMsg;
     }
 
     public byte[] getData() {

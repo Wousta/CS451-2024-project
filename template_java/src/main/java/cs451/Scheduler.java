@@ -1,6 +1,11 @@
 package cs451;
 
 import java.util.List;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
@@ -47,7 +52,9 @@ public class Scheduler {
             System.out.println("I am the sender with ID" + thisHost.getId() + ", sending messages...");
             PerfectLink link = new PerfectLink(thisHost, hosts, logger);
             for(int i = 1; i <= msgsToSend; i++) {
-                Message m = new Message(thisHost.getId(), i, System.currentTimeMillis(), null);
+                byte[] payload = serialize(Integer.toString(i));
+                Message m = new Message(thisHost.getId(), i, System.currentTimeMillis(), payload);
+                assert payload.length != 0 : "Payload is empty";
                 link.send(hosts.get(receiverId-1), m);
                 logger.addLine("b " + i);
             }
@@ -65,5 +72,19 @@ public class Scheduler {
 
     protected void runLattice(int[] params) {
         System.out.println("Lattice agreement not yet implemented");
+    }
+
+    // Code from: https://stackoverflow.com/questions/2836646/java-serializable-object-to-byte-array
+    private byte[] serialize(Object object) {
+        try (ByteArrayOutputStream bos = new ByteArrayOutputStream();
+             ObjectOutputStream out = new ObjectOutputStream(bos)) {
+            out.writeObject(object);
+            return bos.toByteArray();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        
+        // Returning null byte array, should not be happening"
+        return new byte[]{};
     }
 }

@@ -1,6 +1,7 @@
 package cs451.links;
 
 import cs451.Host;
+import cs451.Logger;
 import cs451.Message;
 
 import java.util.Timer;
@@ -18,17 +19,20 @@ public class StubbornLink {
     private Timer timer;  
     private SLTimerTask slTask; 
     private FairLossLink fll;
+    private Logger logger;
 
-    public StubbornLink(Host thisHost, List<Host> hosts){
-        slTask = new SLTimerTask(thisHost);
+    public StubbornLink(Host thisHost, List<Host> hosts, Logger logger){
+        slTask = new SLTimerTask(thisHost, logger);
         timer = new Timer(); // Add parameter true to run as Daemon: https://www.digitalocean.com/community/tutorials/java-timer-timertask-example
-        timer.scheduleAtFixedRate(slTask, 1500, 5000);
+        timer.scheduleAtFixedRate(slTask, 100, 2000);
         fll = new FairLossLink(thisHost.getSocket());
         sent = thisHost.getSent();
         this.hosts = hosts;
+        this.logger = logger;
     }
 
     public void send(Host h, Message m) {
+        //System.out.println("sending message: " + m.getMsgId());
         slTask.setDestinationHost(h);
         fll.send(h, m);
         sent.offer(m);
@@ -50,13 +54,14 @@ public class StubbornLink {
 
         private Host destinationHost;
 
-        public SLTimerTask(Host h) {
+        public SLTimerTask(Host h, Logger logger) {
             destinationHost = h;
         }
 
         @Override
         public void run() {
             //System.out.println("Running timerTask StubbornLinks con sent size: " + sent.size());
+            //logger.addLine("Running timerTask StubbornLinks con sent size: " + sent.size());
             sent.forEach( m -> fll.send(destinationHost, m));
         }
 

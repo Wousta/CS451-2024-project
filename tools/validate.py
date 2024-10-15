@@ -21,9 +21,19 @@ def validate_file(file_path, check_double_number):
                     print("wrong file:",file_path,"line: ",i,"| read:",line.strip())
     return flag
 
+def check_no_duplicates(file_path):
+    seen_lines = set()
+    with open(file_path, 'r') as file:
+        for i, line in enumerate(file):
+            if line in seen_lines:
+                print("wrong file:", file_path, "line:", i, "| reason: duplicate line")
+                return False
+            seen_lines.add(line)
+    return True
+
 def main():
     if len(sys.argv) != 2:
-        print("Usage: python validate.py <number>")
+        print("Usage: python validate.py <index of receiver process with>")
         sys.exit(1)
 
     check_number = sys.argv[1]
@@ -36,6 +46,16 @@ def main():
             check_double_number = (file_number == check_number)
             if not validate_file(file_path, check_double_number):
                 return
+    
+    # Check repetitions in file with file number == check_number
+    target_file = os.path.join(stress_logs_dir, f"proc{check_number}.output")
+    try:
+        if not check_no_duplicates(target_file):
+            return
+    except IOError:
+        print("bad index given: use format XY to input the index of receiver file")
+        return
+    
     print("good output")
 
 if __name__ == "__main__":
