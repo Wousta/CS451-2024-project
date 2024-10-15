@@ -51,7 +51,6 @@ public class StubbornLink {
      * in intervals using TimerTask java library class spec.
      */
     private class SLTimerTask extends TimerTask{
-
         private Host destinationHost;
 
         public SLTimerTask(Host h, Logger logger) {
@@ -60,7 +59,7 @@ public class StubbornLink {
 
         @Override
         public void run() {
-            //System.out.println("Running timerTask StubbornLinks con sent size: " + sent.size());
+            System.out.println("Running timerTask StubbornLinks con sent size: " + sent.size());
             //logger.addLine("Running timerTask StubbornLinks con sent size: " + sent.size());
             sent.forEach( m -> fll.send(destinationHost, m));
         }
@@ -68,6 +67,5 @@ public class StubbornLink {
         public void setDestinationHost(Host destinationHost) {
             this.destinationHost = destinationHost;
         }
-    
     }
 }

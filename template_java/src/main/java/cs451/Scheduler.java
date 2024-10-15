@@ -1,10 +1,13 @@
 package cs451;
 
 import java.util.List;
-import java.io.ByteArrayInputStream;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.ObjectInputStream;
+
 import java.io.ObjectOutputStream;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
@@ -19,14 +22,16 @@ public class Scheduler {
     private List<Host> hosts;
     private Host thisHost;
     private Logger logger;
+    private ExecutorService executor;
 
-    public Scheduler(Parser parser, Logger logger) throws SocketException, UnknownHostException {
+    public Scheduler(Parser parser, Logger logger, ExecutorService executor) throws SocketException, UnknownHostException {
         this.hosts = parser.hosts();
         thisHost = hosts.get(parser.myIndex());
 
         thisHost.setSocket(new DatagramSocket(thisHost.getPort(), InetAddress.getByName(thisHost.getIp())));
         thisHost.setOutputPath(parser.output());
         this.logger = logger;
+        this.executor = executor;
     }
 
     public List<Host> getHosts() {
@@ -51,13 +56,9 @@ public class Scheduler {
             // Sender
             System.out.println("I am the sender with ID" + thisHost.getId() + ", sending messages...");
             PerfectLink link = new PerfectLink(thisHost, hosts, logger);
-            for(int i = 1; i <= msgsToSend; i++) {
-                byte[] payload = serialize(Integer.toString(i));
-                Message m = new Message(thisHost.getId(), i, System.currentTimeMillis(), payload);
-                assert payload.length != 0 : "Payload is empty";
-                link.send(hosts.get(receiverId-1), m);
-                logger.addLine("b " + i);
-            }
+            Sender sender = new Sender(msgsToSend, receiverId, link);
+            
+            executor.execute(sender);
         }
 
         /**
@@ -87,4 +88,29 @@ public class Scheduler {
         // Returning null byte array, should not be happening"
         return new byte[]{};
     }
+
+    private class Sender implements Runnable {
+        private int msgsToSend;
+        int receiverId;
+        PerfectLink link;
+
+        public Sender(int msgsToSend, int receiverId, PerfectLink link){
+            this.msgsToSend = msgsToSend;
+            this.link = link;
+            this.receiverId = receiverId;
+        }
+
+        @Override
+        public void run() {
+            for(int i = 1; i <= msgsToSend; i++) {
+                byte[] payload = serialize(Integer.toString(i));
+                Message m = new Message(thisHost.getId(), i, System.currentTimeMillis(), payload);
+                assert payload.length != 0 : "Payload is empty";
+                link.send(hosts.get(receiverId-1), m);
+                logger.addLine("b " + i);
+            }
+        }
+    }
+
+
 }

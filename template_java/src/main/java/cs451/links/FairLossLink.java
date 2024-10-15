@@ -40,11 +40,13 @@ public class FairLossLink {
 
 
     /**
-     * Waits for a DatagramPacket and returns it deserialized into Message
+     * Waits for a DatagramPacket and returns it deserialized into Message.
+     * It is synchronized because only one port for receiving messages is allowed,
+     * so threads have to wait for each other and read one port one message at a time.
      * @return the deserialized Message
      */
     // TODO: a thread has to be used to keep listening and appending received messages, while another thread processes them
-    public Message deliver() {
+    public synchronized Message deliver() {
         DatagramPacket packet;
         packet = new DatagramPacket(new byte[Message.MSG_MAX_SIZE], Message.MSG_MAX_SIZE);
         try {

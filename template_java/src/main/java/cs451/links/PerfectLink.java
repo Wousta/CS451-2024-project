@@ -35,7 +35,7 @@ public class PerfectLink {
             
             // TODO: ack of message to not send it anymore
             logger.addLine("d " + msg.getSenderId() + " " + (String)deSerialize(msg.getData()));
-            //System.out.println("d " + msg.getSenderId() + " " + msg.getMsgId());
+            System.out.println("d " + msg.getSenderId() + " " + msg.getMsgId());
         }
 
         else System.out.println("message already delivered id: " + msg.getMsgId() + " sender: " + msg.getSenderId());

@@ -6,15 +6,27 @@ import java.io.IOException;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import cs451.parsers.Parser;
 
 public class Main {
     private static Logger logger;
+    private static ExecutorService executor;
 
     private static void handleSignal() {
         //immediately stop network packet processing
         System.out.println("Immediately stopping network packet processing.");
+        executor.shutdown();
+        try {
+            if (!executor.awaitTermination(800, TimeUnit.MILLISECONDS)) {
+                executor.shutdownNow();
+            } 
+        } catch (InterruptedException e) {
+            executor.shutdownNow();
+        }
 
         //write/flush output file if necessary
         System.out.println("Writing output.");
@@ -36,6 +48,7 @@ public class Main {
         parser.parse();
     
         logger = new Logger(parser.output());
+        executor = Executors.newFixedThreadPool(8);
         String config = parser.config();
         Host thisHost = parser.hosts().get(parser.myIndex());
         Scheduler scheduler;
@@ -48,7 +61,7 @@ public class Main {
         try (BufferedReader reader = new BufferedReader(new FileReader(config))) {
             String[] parts = reader.readLine().trim().split("\\s+");
             input = Arrays.stream(parts).mapToInt(Integer::parseInt).toArray();
-            scheduler = new Scheduler(parser, logger);
+            scheduler = new Scheduler(parser, logger, executor);
         }
         catch(Exception e){
             System.err.println("Bad initialization");
@@ -97,8 +110,6 @@ public class Main {
                 System.out.println("Configuration mode not recognized");
                 break;
         }
-
-        //TODO: wait for threads to finish
 
         while (true) {
             System.out.println("Go sleep");
