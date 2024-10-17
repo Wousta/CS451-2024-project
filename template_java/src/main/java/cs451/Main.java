@@ -8,13 +8,15 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import cs451.parsers.Logger;
 import cs451.parsers.Parser;
 
 public class Main {
     private static Logger logger;
-    private static ExecutorService executor;
+    private static ScheduledExecutorService executor;
 
     private static void handleSignal() {
         //immediately stop network packet processing
@@ -48,7 +50,7 @@ public class Main {
         parser.parse();
     
         logger = new Logger(parser.output());
-        executor = Executors.newFixedThreadPool(8);
+        executor = Executors.newScheduledThreadPool(4);
         String config = parser.config();
         Host thisHost = parser.hosts().get(parser.myIndex());
         Scheduler scheduler;
@@ -98,13 +100,14 @@ public class Main {
 
         switch (input.length) {
             case 1:
-                scheduler.runFIFO(input);
+                // Run fifo
                 break;
             case 2:
-                scheduler.runPerfect(input);
+                if(input[1] == thisHost.getId()) scheduler.runPerfectReceiver();
+                else scheduler.runPerfectSender(input);
                 break;
             case 3:
-                scheduler.runLattice(input);
+                // Run Lattice
                 break;
             default:
                 System.out.println("Configuration mode not recognized");

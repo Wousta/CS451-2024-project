@@ -1,9 +1,14 @@
 package cs451;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+
+import cs451.packets.Packet;
+
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.net.DatagramSocket;
 
 public class Host {
@@ -15,13 +20,13 @@ public class Host {
     private int port = -1;
     private String outputPath;
     private DatagramSocket socket;
-    private Queue<Message> sent = new ConcurrentLinkedQueue<>();
-    private Queue<Message> delivered = new ConcurrentLinkedQueue<>();
+    
+    private List<ConcurrentMap<Integer,Packet>> delivered;
+    private ConcurrentMap<Integer,Packet> sent;
 
     public boolean populate(String idString, String ipString, String portString) {
         try {
             id = Integer.parseInt(idString);
-
             String ipTest = InetAddress.getByName(ipString).toString();
             if (ipTest.startsWith(IP_START_REGEX)) {
                 ip = ipTest.substring(1);
@@ -46,6 +51,14 @@ public class Host {
         }
 
         return true;
+    }
+
+    public void initMapDelivered(int nHosts) {
+        delivered = new ArrayList<>(nHosts);
+        
+        for (int i = 0; i < nHosts; i++) {
+            delivered.add(new ConcurrentHashMap<>(256, 0.75f, Constants.N_THREADS));
+        }
     }
 
     // GETTERS ================================================
@@ -90,7 +103,7 @@ public class Host {
      * Returns the queue of sent messages of this host.
      * @return the ConcurrentLinkedQueue for concurrent access with the sent messages
      */
-    public Queue<Message> getSent() {
+    public ConcurrentMap<Integer,Packet> getSent() {
         return sent;
     }
 
@@ -98,7 +111,7 @@ public class Host {
      * Returns the queue of delivered messages of this host.
      * @return the ConcurrentLinkedQueue for concurrent access with the delivered messages
      */
-    public Queue<Message> getDelivered() {
+    public List<ConcurrentMap<Integer,Packet>> getDelivered() {
         return delivered;
     }
 

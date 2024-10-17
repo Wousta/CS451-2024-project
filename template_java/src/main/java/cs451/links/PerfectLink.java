@@ -4,41 +4,45 @@ import java.io.ByteArrayInputStream;
 import java.io.ObjectInputStream;
 import java.util.List;
 import java.util.Queue;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ScheduledExecutorService;
 
+import cs451.Constants;
 import cs451.Host;
-import cs451.Message;
-import cs451.Logger;
+import cs451.packets.Message;
+import cs451.packets.Packet;
+import cs451.parsers.Logger;
 
 public class PerfectLink {
 
-    private Queue<Message> delivered;
+    private List<ConcurrentMap<Integer,Packet>> delivered;
     private StubbornLink sl;
     private Logger logger;
 
-    public PerfectLink(Host thisHost, List<Host> hosts, Logger logger){
-        sl = new StubbornLink(thisHost, hosts, logger);
+    public PerfectLink(Host thisHost, List<Host> hosts, Logger logger, ScheduledExecutorService executor){
+        sl = new StubbornLink(thisHost, hosts, executor);
         delivered = thisHost.getDelivered();
         this.logger = logger;
     }
 
-    // Thread to send
-    public void send(Host h, Message m) {
-        sl.send(h, m);
+    public void send(Host h, Packet p) {
+        sl.send(h, p);
     }
 
-    // Thread to deliver
     public void deliver() {
-        Message msg = sl.deliver();
+        Packet packet = sl.deliver();
+        int packetId = packet.getPacketId();
+        ConcurrentMap<Integer,Packet> senderDelivered = delivered.get(packet.getHostIndex());
 
-        if(!delivered.contains(msg)){
-            delivered.offer(msg);
-            
-            // TODO: ack of message to not send it anymore
-            logger.addLine("d " + msg.getSenderId() + " " + (String)deSerialize(msg.getData()));
-            System.out.println("d " + msg.getSenderId() + " " + msg.getMsgId());
+        if(!senderDelivered.containsKey(packetId)) {
+            senderDelivered.put(packetId, packet);
+            for(Message m : packet.getMessages()) {
+                logger.addLine("d " + m.getHostId() + " " + (String)deSerialize(m.getData()));
+            }
+            //System.out.println("d " + packet.getSenderId() + " " + packet.getMsgId());
         }
-
-        else System.out.println("message already delivered id: " + msg.getMsgId() + " sender: " + msg.getSenderId());
+        else System.out.println("Packet already delivered id: " + packetId + " sender: " + packet.getHostId());
     }
 
     private Object deSerialize(byte[] bytes) {

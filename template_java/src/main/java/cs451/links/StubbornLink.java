@@ -1,59 +1,54 @@
 package cs451.links;
 
 import cs451.Host;
-import cs451.Logger;
-import cs451.Message;
+import cs451.packets.Message;
+import cs451.packets.Packet;
 
-import java.util.Timer;
 import java.util.List;
 import java.util.Queue;
-import java.util.TimerTask;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Use it inside PerfectLink to guarantee Stubborn delivery.
  */
 public class StubbornLink {
 
-    private Queue<Message> sent;
+    private ConcurrentMap<Integer,Packet> sent;
     private List<Host> hosts; 
-    private Timer timer;  
     private SLTimerTask slTask; 
     private FairLossLink fll;
-    private Logger logger;
 
-    public StubbornLink(Host thisHost, List<Host> hosts, Logger logger){
-        slTask = new SLTimerTask(thisHost, logger);
-        timer = new Timer(); // Add parameter true to run as Daemon: https://www.digitalocean.com/community/tutorials/java-timer-timertask-example
-        timer.scheduleAtFixedRate(slTask, 100, 2000);
+
+    public StubbornLink(Host thisHost, List<Host> hosts, ScheduledExecutorService executor){
+        slTask = new SLTimerTask(thisHost);
         fll = new FairLossLink(thisHost.getSocket());
         sent = thisHost.getSent();
         this.hosts = hosts;
-        this.logger = logger;
+
+        executor.scheduleWithFixedDelay(slTask, 200, 1000, TimeUnit.MILLISECONDS);
     }
 
-    public void send(Host h, Message m) {
+    public void send(Host h, Packet p) {
         //System.out.println("sending message: " + m.getMsgId());
         slTask.setDestinationHost(h);
-        fll.send(h, m);
-        sent.offer(m);
+        fll.send(h, p);
+        sent.put(p.getPacketId(), p);
     }
 
-    public Message deliver() {
+    public Packet deliver() {
         return fll.deliver();
-    }
-
-    public Queue<Message> getSent() {
-        return sent;
     }
 
     /**
      * Timer service of StubbornLinks, it resends all messages
      * in intervals using TimerTask java library class spec.
      */
-    private class SLTimerTask extends TimerTask{
+    private class SLTimerTask implements Runnable{
         private Host destinationHost;
 
-        public SLTimerTask(Host h, Logger logger) {
+        public SLTimerTask(Host h) {
             destinationHost = h;
         }
 
@@ -61,7 +56,7 @@ public class StubbornLink {
         public void run() {
             System.out.println("Running timerTask StubbornLinks con sent size: " + sent.size());
             //logger.addLine("Running timerTask StubbornLinks con sent size: " + sent.size());
-            sent.forEach( m -> fll.send(destinationHost, m));
+            sent.forEach((id, packet) -> fll.send(destinationHost, packet));
         }
 
         public void setDestinationHost(Host destinationHost) {
