@@ -19,10 +19,12 @@ public class PerfectLink {
     private List<ConcurrentMap<Integer,Packet>> delivered;
     private StubbornLink sl;
     private Logger logger;
+    List<Host> hosts;
 
     public PerfectLink(Host thisHost, List<Host> hosts, Logger logger, ScheduledExecutorService executor){
         sl = new StubbornLink(thisHost, hosts, executor);
         delivered = thisHost.getDelivered();
+        this.hosts = hosts;
         this.logger = logger;
     }
 
@@ -33,9 +35,12 @@ public class PerfectLink {
     public void deliver() {
         Packet packet = sl.deliver();
         int packetId = packet.getPacketId();
+        int lastAck = hosts.get(packet.getHostIndex()).getLastAck();
         ConcurrentMap<Integer,Packet> senderDelivered = delivered.get(packet.getHostIndex());
 
-        if(!senderDelivered.containsKey(packetId)) {
+        
+        // Only deliver if not already delivered and if message is not older than last ack
+        if(!senderDelivered.containsKey(packetId) && packetId > lastAck) {
             System.out.println("Recibido paquete: " + packet.toString());
             senderDelivered.put(packetId, packet);
             for(Message m : packet.getMessages()) {

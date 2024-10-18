@@ -14,7 +14,7 @@ public class Packet implements Serializable {
     public static final int MAX_PACKET_SIZE = 65504; // 64KiB - 32
     public static final int MAX_MSGS = 8;
     private final int hostId;
-    private final int packetId;
+    private final int packetId; // Serves as timestamp, since it is incremented by an atomic int each time a packet is created
     private final List<Message> messages = new ArrayList<>(8);
     /**
      * if true, this is an ack message and therefore contains the indexes of

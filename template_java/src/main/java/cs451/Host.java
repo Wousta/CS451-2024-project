@@ -15,6 +15,7 @@ public class Host {
 
     private static final String IP_START_REGEX = "/";
 
+    private int lastAck = 0; // Most recent timestamp received in an ack from this host
     private int id;
     private String ip;
     private int port = -1;
@@ -120,6 +121,10 @@ public class Host {
         return outputPath;
     }
 
+    public int getLastAck() {
+        return lastAck;
+    }
+
     // SETTERS ================================================
     public void setSocket(DatagramSocket s) {
         if(socket != null) socket.close();
@@ -128,6 +133,10 @@ public class Host {
 
     public void setOutputPath(String outputPath) {
         this.outputPath = outputPath;
+    }
+
+    public void setLastAck(int lastAckTimestamp) {
+        this.lastAck = lastAckTimestamp;
     }
 
 }
