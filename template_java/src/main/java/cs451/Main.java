@@ -27,6 +27,7 @@ public class Main {
                 executor.shutdownNow();
             } 
         } catch (InterruptedException e) {
+            System.out.println("Interrupt Executor");
             executor.shutdownNow();
         }
 

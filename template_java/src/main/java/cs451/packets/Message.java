@@ -26,11 +26,11 @@ public class Message implements Serializable {
     /**
      * Id of the host that created the message
      */
-    private int senderId;
+    private int hostId;
 
 
     public Message(int senderId, int msgId, byte[] data) {
-        this.senderId = senderId;
+        this.hostId = senderId;
         this.msgId = msgId;
         this.data = data;
     }
@@ -40,11 +40,16 @@ public class Message implements Serializable {
     }
 
     public int getHostId() {
-        return senderId;
+        return hostId;
     }
 
     public byte[] getData() {
         return data;
+    }
+
+    @Override
+    public String toString() {
+        return "M" + msgId + "H" + hostId;
     }
 
 }

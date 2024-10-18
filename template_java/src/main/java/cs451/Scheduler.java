@@ -38,10 +38,6 @@ public class Scheduler {
         this.executor = executor;
     }
 
-    public List<Host> getHosts() {
-        return hosts;
-    }
-
     protected void runPerfectSender(int[] params) {
         int msgsToSend = params[0];
         int receiverId = params[1];
@@ -86,22 +82,32 @@ public class Scheduler {
             this.receiverId = receiverId;
         }
 
+        public void sendPacket(int msgsToAdd, int currentMsgId) {
+            Packet packet = new Packet(thisHost.getId(), packetId.getAndIncrement());
+            for(int i = 0; i < msgsToAdd; i++) {
+                // To string because payload can be any datatype and it only has to be logged, 
+                // so parse to string to be able to cast to string when deserializing to log the message payload.
+                byte[] payload = serialize(Integer.toString(currentMsgId));
+                packet.addMessage(new Message(thisHost.getId(), currentMsgId, payload));
+                System.out.println("b " + currentMsgId);
+                logger.addLine("b " + currentMsgId);
+                ++currentMsgId;
+            }
+            link.send(hosts.get(receiverId-1), packet);
+        }
+
         @Override
         public void run() {
-            Packet packet = new Packet(thisHost.getId(), packetId.getAndIncrement());
-            for(int i = 1; i <= msgsToSend; i++) {
-                byte[] payload = serialize(Integer.toString(i));
-                Message m = new Message(thisHost.getId(), i, payload);
-                assert payload.length != 0 : "Payload is empty";
-                packet.addMessage(m);
-
-                if(packet.getMessages().size() == 8) {
-                    // TODO
-                }
-
-                //link.send(hosts.get(receiverId-1), m);
-                logger.addLine("b " + i);
+            int msgId = 1;
+            int msgsPerPacket = Packet.MAX_MSGS;
+            int iters = msgsToSend/msgsPerPacket; // Each packet can store up to 8 messages
+            int lastIters = msgsToSend % msgsPerPacket;
+            for(int i = 0; i < iters; i++) {
+                System.out.println("sendpacket================================");
+                sendPacket(msgsPerPacket, msgId);
             }
+            // Send remaining messages
+            sendPacket(lastIters, msgId);
         }
     }
 

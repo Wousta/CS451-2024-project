@@ -17,22 +17,21 @@ public class StubbornLink {
 
     private ConcurrentMap<Integer,Packet> sent;
     private List<Host> hosts; 
-    private SLTimerTask slTask; 
+    private SLMsgResender resend; 
     private FairLossLink fll;
 
 
     public StubbornLink(Host thisHost, List<Host> hosts, ScheduledExecutorService executor){
-        slTask = new SLTimerTask(thisHost);
+        resend = new SLMsgResender(thisHost);
         fll = new FairLossLink(thisHost.getSocket());
         sent = thisHost.getSent();
         this.hosts = hosts;
 
-        executor.scheduleWithFixedDelay(slTask, 200, 1000, TimeUnit.MILLISECONDS);
+        executor.scheduleWithFixedDelay(resend, 200, 1000, TimeUnit.MILLISECONDS);
     }
 
     public void send(Host h, Packet p) {
-        //System.out.println("sending message: " + m.getMsgId());
-        slTask.setDestinationHost(h);
+        resend.setDestinationHost(h);
         fll.send(h, p);
         sent.put(p.getPacketId(), p);
     }
@@ -42,13 +41,12 @@ public class StubbornLink {
     }
 
     /**
-     * Timer service of StubbornLinks, it resends all messages
-     * in intervals using TimerTask java library class spec.
+     * It resends all messages in time intervals between each completed resend.
      */
-    private class SLTimerTask implements Runnable{
+    private class SLMsgResender implements Runnable{
         private Host destinationHost;
 
-        public SLTimerTask(Host h) {
+        public SLMsgResender(Host h) {
             destinationHost = h;
         }
 
@@ -59,7 +57,9 @@ public class StubbornLink {
             sent.forEach((id, packet) -> fll.send(destinationHost, packet));
         }
 
+        // StubbornLink does not know in constructor to what host it will send, so destination host has to be set in send().
         public void setDestinationHost(Host destinationHost) {
+            System.out.println("Set destination host");
             this.destinationHost = destinationHost;
         }
     }

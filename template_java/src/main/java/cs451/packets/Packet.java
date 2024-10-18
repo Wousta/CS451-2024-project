@@ -8,9 +8,11 @@ import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class Packet implements Serializable {
     public static final int MAX_PACKET_SIZE = 65536; // 64KiB
+    public static final int MAX_MSGS = 8;
     private final int hostId;
     private final int packetId;
     private final List<Message> messages = new ArrayList<>(8);
@@ -57,6 +59,35 @@ public class Packet implements Serializable {
     }
     ///////////
 
+    public static byte[] serialize(Object object) throws IOException {
+        try (ByteArrayOutputStream bos = new ByteArrayOutputStream();
+             ObjectOutputStream out = new ObjectOutputStream(bos)) {
+            out.writeObject(object);
+            return bos.toByteArray();
+        } 
+    }
+
+    public static Object deSerialize(byte[] bytes) {
+        try (ByteArrayInputStream bis = new ByteArrayInputStream(bytes);
+            ObjectInputStream in = new ObjectInputStream(bis)) {
+            return in.readObject();
+        } catch (Exception e) {
+            System.out.println("Error deserializing");
+            e.printStackTrace();
+        }
+
+        System.out.println("Returning null message, should not be happening");
+        return null;
+    }
+
+    @Override
+    public String toString() {
+        String msgList = messages.stream().map(Message::toString)
+                        .collect(Collectors.joining(", "));
+
+        return "PacketId " + packetId + "hostId " + hostId + " [" + msgList + "]";
+    }
+
     // equals and hashCode answers provided by grepper results
     @Override
 	public boolean equals(Object o) { 
@@ -82,28 +113,6 @@ public class Packet implements Serializable {
         result = prime * result + Long.hashCode(packetId);
         result = prime * result + Integer.hashCode(hostId);
         return result;
-    }
-
-    public static byte[] serialize(Object object) throws IOException {
-        try (ByteArrayOutputStream bos = new ByteArrayOutputStream();
-             ObjectOutputStream out = new ObjectOutputStream(bos)) {
-            out.writeObject(object);
-            return bos.toByteArray();
-        } 
-    }
-
-    public static Object deSerialize(byte[] bytes) {
-        try (ByteArrayInputStream bis = new ByteArrayInputStream(bytes);
-            ObjectInputStream in = new ObjectInputStream(bis)) {
-            return in.readObject();
-        } catch (Exception e) {
-            // TODO Auto-generated catch block
-            System.out.println("Error deserializing");
-            e.printStackTrace();
-        }
-
-        System.out.println("Returning null message, should not be happening");
-        return null;
     }
 
 }

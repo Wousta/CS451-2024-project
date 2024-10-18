@@ -36,25 +36,13 @@ public class PerfectLink {
         ConcurrentMap<Integer,Packet> senderDelivered = delivered.get(packet.getHostIndex());
 
         if(!senderDelivered.containsKey(packetId)) {
+            System.out.println("Recibido paquete: " + packet.toString());
             senderDelivered.put(packetId, packet);
             for(Message m : packet.getMessages()) {
-                logger.addLine("d " + m.getHostId() + " " + (String)deSerialize(m.getData()));
+                System.out.println("d " + m.getHostId() + " " + (String)Packet.deSerialize(m.getData()));
+                logger.addLine("d " + m.getHostId() + " " + (String)Packet.deSerialize(m.getData()));
             }
-            //System.out.println("d " + packet.getSenderId() + " " + packet.getMsgId());
         }
-        else System.out.println("Packet already delivered id: " + packetId + " sender: " + packet.getHostId());
-    }
-
-    private Object deSerialize(byte[] bytes) {
-        try (ByteArrayInputStream bis = new ByteArrayInputStream(bytes);
-            ObjectInputStream in = new ObjectInputStream(bis)) {
-            return in.readObject();
-        } catch (Exception e) {
-            System.out.println("Error deserializing");
-            e.printStackTrace();
-        }
-
-        // Returning null message, should not be happening"
-        return null;
+        else System.out.println("Packet already delivered: " + packet.toString());
     }
 }
