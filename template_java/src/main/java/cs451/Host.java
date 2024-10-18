@@ -22,7 +22,7 @@ public class Host {
     private DatagramSocket socket;
     
     private List<ConcurrentMap<Integer,Packet>> delivered;
-    private ConcurrentMap<Integer,Packet> sent;
+    private ConcurrentMap<Integer,Packet> sent = new ConcurrentHashMap<>(64, 0.75f, Constants.N_THREADS);
 
     public boolean populate(String idString, String ipString, String portString) {
         try {
@@ -57,7 +57,7 @@ public class Host {
         delivered = new ArrayList<>(nHosts);
         
         for (int i = 0; i < nHosts; i++) {
-            delivered.add(new ConcurrentHashMap<>(256, 0.75f, Constants.N_THREADS));
+            delivered.add(new ConcurrentHashMap<>(64, 0.75f, Constants.N_THREADS));
         }
     }
 

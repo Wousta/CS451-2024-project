@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 public class Packet implements Serializable {
-    public static final int MAX_PACKET_SIZE = 65536; // 64KiB
+    public static final int MAX_PACKET_SIZE = 65504; // 64KiB - 32
     public static final int MAX_MSGS = 8;
     private final int hostId;
     private final int packetId;
@@ -85,7 +85,7 @@ public class Packet implements Serializable {
         String msgList = messages.stream().map(Message::toString)
                         .collect(Collectors.joining(", "));
 
-        return "PacketId " + packetId + "hostId " + hostId + " [" + msgList + "]";
+        return "Id " + packetId + " hostId " + hostId + " [" + msgList + "]";
     }
 
     // equals and hashCode answers provided by grepper results

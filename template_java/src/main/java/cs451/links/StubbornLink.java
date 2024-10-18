@@ -27,13 +27,17 @@ public class StubbornLink {
         sent = thisHost.getSent();
         this.hosts = hosts;
 
-        executor.scheduleWithFixedDelay(resend, 200, 1000, TimeUnit.MILLISECONDS);
+        executor.scheduleWithFixedDelay(resend, 1000, 1000, TimeUnit.MILLISECONDS);
     }
 
     public void send(Host h, Packet p) {
         resend.setDestinationHost(h);
         fll.send(h, p);
-        sent.put(p.getPacketId(), p);
+        try {
+            sent.put(p.getPacketId(), p); // Gets blocked here
+        } catch(Exception e) {
+            e.printStackTrace();
+        }
     }
 
     public Packet deliver() {
@@ -52,14 +56,14 @@ public class StubbornLink {
 
         @Override
         public void run() {
-            System.out.println("Running timerTask StubbornLinks con sent size: " + sent.size());
+            System.out.println("\nRunning timerTask StubbornLinks con sent size: " + sent.size());
             //logger.addLine("Running timerTask StubbornLinks con sent size: " + sent.size());
+            System.out.println("Map: " + sent);
             sent.forEach((id, packet) -> fll.send(destinationHost, packet));
         }
 
         // StubbornLink does not know in constructor to what host it will send, so destination host has to be set in send().
         public void setDestinationHost(Host destinationHost) {
-            System.out.println("Set destination host");
             this.destinationHost = destinationHost;
         }
     }

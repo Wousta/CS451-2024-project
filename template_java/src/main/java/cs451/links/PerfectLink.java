@@ -43,6 +43,6 @@ public class PerfectLink {
                 logger.addLine("d " + m.getHostId() + " " + (String)Packet.deSerialize(m.getData()));
             }
         }
-        else System.out.println("Packet already delivered: " + packet.toString());
+        else System.out.println("Already delivered: " + packet);
     }
 }

@@ -22,7 +22,7 @@ import cs451.parsers.Logger;
 import cs451.parsers.Parser;
 
 public class Scheduler {
-    private AtomicInteger packetId = new AtomicInteger();
+    private AtomicInteger packetId = new AtomicInteger(1);
     private List<Host> hosts;
     private Host thisHost;
     private Logger logger;
@@ -34,6 +34,7 @@ public class Scheduler {
 
         thisHost.setSocket(new DatagramSocket(thisHost.getPort(), InetAddress.getByName(thisHost.getIp())));
         thisHost.setOutputPath(parser.output());
+        thisHost.initMapDelivered(hosts.size());
         this.logger = logger;
         this.executor = executor;
     }
@@ -102,9 +103,11 @@ public class Scheduler {
             int msgsPerPacket = Packet.MAX_MSGS;
             int iters = msgsToSend/msgsPerPacket; // Each packet can store up to 8 messages
             int lastIters = msgsToSend % msgsPerPacket;
+            System.out.println("Iters = " + iters + " lastIters = " + lastIters);
             for(int i = 0; i < iters; i++) {
                 System.out.println("sendpacket================================");
                 sendPacket(msgsPerPacket, msgId);
+                msgId += 8;
             }
             // Send remaining messages
             sendPacket(lastIters, msgId);

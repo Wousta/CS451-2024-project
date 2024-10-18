@@ -32,7 +32,6 @@ public class FairLossLink {
     public void send(Host host, Packet packet) {
         try {
             byte[] buf = Packet.serialize(packet);
-            System.out.println("Enviando paquete nº " + packet.getPacketId() + " a dir: " + host.getIp() + " " + host.getInetAddress().toString() + " port: " + host.getPort());
             socket.send(new DatagramPacket(buf, buf.length, host.getInetAddress(), host.getPort()));
         } catch (IOException e) {
             e.printStackTrace();
@@ -55,7 +54,6 @@ public class FairLossLink {
         } catch (IOException e) {
             e.printStackTrace();
         }
-
         return (Packet)Packet.deSerialize(packet.getData());
     }
 }

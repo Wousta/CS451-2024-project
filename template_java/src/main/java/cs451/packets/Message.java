@@ -49,7 +49,7 @@ public class Message implements Serializable {
 
     @Override
     public String toString() {
-        return "M" + msgId + "H" + hostId;
+        return "H" + hostId + "M" + msgId;
     }
 
 }
