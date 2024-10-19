@@ -1,18 +1,16 @@
 package cs451.links;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.io.ObjectInputStream;
 import java.util.List;
-import java.util.Queue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.Executor;
 import java.util.concurrent.ScheduledExecutorService;
 
-import cs451.Constants;
 import cs451.Host;
-import cs451.packets.*;
+import cs451.packets.AcksPacket;
+import cs451.packets.Message;
+import cs451.packets.MsgPacket;
+import cs451.packets.Packet;
 import cs451.parsers.Logger;
 
 public class PerfectLink {
@@ -51,7 +49,9 @@ public class PerfectLink {
         } 
     }
 
-    public void handleMsgPacket(byte[] data) throws ClassNotFoundException, IOException {
+
+
+    private void handleMsgPacket(byte[] data) throws ClassNotFoundException, IOException {
         MsgPacket packet = (MsgPacket)Packet.deSerialize(data);
         int packetId = packet.getPacketId();
         int lastAck = hosts.get(packet.getHostIndex()).getLastAck();
@@ -74,8 +74,29 @@ public class PerfectLink {
         else System.out.println("Already delivered: " + packet);
     }
 
-    public void handleAcksPacket(byte[] data) throws ClassNotFoundException, IOException {
+    private void handleAcksPacket(byte[] data) throws ClassNotFoundException, IOException {
         AcksPacket packet = (AcksPacket)Packet.deSerialize(data);
+
+        if(packet.getAckStep() == AcksPacket.ACK_RECEIVER) {
+            // TODO: Thread clear sent messages
+            
+        }
+        if(packet.getAckStep() == AcksPacket.ACK_SENDER) {
+
+        }
+        
         System.out.println("What are we doing here, just to suffer");
+    }
+
+    private class ClearSentMessages implements Runnable {
+
+
+
+        @Override
+        public void run() {
+            // TODO Auto-generated method stub
+            throw new UnsupportedOperationException("Unimplemented method 'run'");
+        }
+        
     }
 }

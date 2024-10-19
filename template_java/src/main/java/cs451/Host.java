@@ -1,18 +1,17 @@
 package cs451;
 
+import java.net.DatagramSocket;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.LinkedBlockingQueue;
 
-import cs451.packets.*;
-
-import java.net.InetAddress;
-import java.net.UnknownHostException;
-import java.net.DatagramSocket;
+import cs451.packets.AcksPacket;
+import cs451.packets.Packet;
 
 public class Host {
 
@@ -25,8 +24,27 @@ public class Host {
     private String outputPath;
     private DatagramSocket socket;
     
+    /**
+     * Stores delivered messages from each sender. To create ack messages
+     * get the keyset and put it in payload of ack message packet
+     */
     private List<ConcurrentMap<Integer,Packet>> delivered;
+
+    /**
+     * List of indexes of the messages waiting for acks, it grows per new packet delivered
+     */
     private List<BlockingQueue<Integer>> pendingAcks;
+
+    /**
+     * Queues of the ack packets ready to be sent. It grows each time the pendingAcks queue
+     * of a host is dumped into an AcksPacket, when ack ok is received from sender that AcksPacket is removed.
+     */
+    private BlockingQueue<AcksPacket> ackPacketsQueue = new LinkedBlockingQueue<>(); // TODO: compare performance with hashmap
+
+    /**
+     * Stores the sent packets. It is a hashmap for fast lookup of packets when iterating
+     * the queue of ack message indexes that specifies packets to be deleted.
+     */
     private ConcurrentMap<Integer,Packet> sent = new ConcurrentHashMap<>(64, 0.75f, Constants.N_THREADS);
 
     public boolean populate(String idString, String ipString, String portString) {
@@ -138,6 +156,10 @@ public class Host {
 
     public List<BlockingQueue<Integer>> getPendingAcks() {
         return pendingAcks;
+    }
+
+    public BlockingQueue<AcksPacket> getAckPacketsQueue() {
+        return ackPacketsQueue;
     }
 
     // SETTERS ================================================

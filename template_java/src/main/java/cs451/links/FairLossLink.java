@@ -1,18 +1,11 @@
 package cs451.links;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import cs451.Host;
-import cs451.packets.AcksPacket;
-import cs451.packets.Message;
-import cs451.packets.MsgPacket;
 import cs451.packets.Packet;
 
 /**

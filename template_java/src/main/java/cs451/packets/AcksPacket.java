@@ -1,27 +1,33 @@
 package cs451.packets;
 
-public class AcksPacket extends Packet {
-    public static final boolean ACK_RECEIVER = true;            // Ack sent by receiver to clear sent messages
-    public static final boolean ACK_SENDER = false;             // Ack sent by sender to clear delivered msgs and the ack
-    /**
-     * if true, this is an ack message and therefore contains the indexes of
-     * the acked messages by a receiver process
-     */
-    //private boolean isAck = true;
-    private boolean ackStep = ACK_RECEIVER;
-    private Message msg;
+import java.util.Queue;
 
-    public AcksPacket(int hostId, int packetId, Message msg) {
+public class AcksPacket extends Packet {
+    /**
+     * Ack sent by receiver to clear sent messages and send the ack ok message to receiver
+     */
+    public static final boolean ACK_RECEIVER = true;
+
+    /**
+     * Ack sent by sender to clear delivered msgs and the ack, this would be the ack ok message
+     */
+    public static final boolean ACK_SENDER = false;
+
+    // Initialized to ACK_RECEIVER since the sender of first ack message in the exchange is the receiver
+    private boolean ackStep = ACK_RECEIVER;
+    private Queue<Integer> acks;
+
+    public AcksPacket(int hostId, int packetId, Queue<Integer> acks) {
         super(hostId, packetId);
-        this.msg = msg;
+        this.acks = acks;
     }
 
     public boolean getAckStep() {
         return ackStep;
     }
 
-    public Message getMsg() {
-        return msg;
+    public Queue<Integer> getAcks() {
+        return acks;
     }
 
     public void setAckStep(boolean ackStep) {

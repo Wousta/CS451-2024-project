@@ -1,21 +1,22 @@
 package cs451;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-
-import java.io.ObjectOutputStream;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Queue;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import cs451.links.PerfectLink;
-import cs451.packets.*;
+import cs451.packets.AcksPacket;
+import cs451.packets.Message;
+import cs451.packets.MsgPacket;
 import cs451.parsers.Logger;
 import cs451.parsers.Parser;
 
@@ -51,14 +52,20 @@ public class PPLScheduler {
     protected void runPerfectReceiver() {
         System.out.println("I am the receiver with ID: " + thisHost.getId() + ", delivering messages...");
         PerfectLink link = new PerfectLink(thisHost, hosts, logger, executor);
-
+        AckBuildAndSend ackBuildAndSend = new AckBuildAndSend(link);
         
         // One thread permanently receives packets
         executor.execute( () -> {
             while(true) link.deliver();
         });
 
+        executor.scheduleWithFixedDelay(ackBuildAndSend, 50, 100, TimeUnit.MILLISECONDS);
 
+        executor.scheduleWithFixedDelay( () -> {
+            for(AcksPacket p : thisHost.getAckPacketsQueue()) {
+                link.send(hosts.get(p.getHostIndex()), p);
+            }
+        }, 180, 200, TimeUnit.MILLISECONDS);
     }
 
     private class MessageSender implements Runnable {
@@ -87,13 +94,6 @@ public class PPLScheduler {
             link.send(hosts.get(receiverId-1), packet);
         }
 
-        // public void sendPacket(int msgsToAdd, int currentMsgId) {
-        //     byte[] payload = Packet.serialize(Integer.toString(currentMsgId));
-        //     AcksPacket packet = new AcksPacket(thisHost.getId(), packetId.getAndIncrement(), new Message(thisHost.getId(), currentMsgId, payload));
-        //     System.out.println("b " + currentMsgId);
-        //     link.send(hosts.get(receiverId-1), packet);
-        // }
-
         @Override
         public void run() {
             int msgId = 1;
@@ -111,23 +111,29 @@ public class PPLScheduler {
         }
     }
 
-    private class SendAck implements Runnable {
-        private List<BlockingQueue<Integer>> pendingAcks;
+    private class AckBuildAndSend implements Runnable {
         private PerfectLink link;
 
-        public SendAck(List<BlockingQueue<Integer>> pendingAcks, PerfectLink link) {
-            this.pendingAcks = pendingAcks;
+        public AckBuildAndSend(PerfectLink link) {
             this.link = link;
         }
 
         @Override
         public void run() {
-            for(BlockingQueue<Integer> queue : pendingAcks) {
-                List<Integer> ackList = new ArrayList<>(32);
+            int indexOfTargetHost = 0;
+            for(BlockingQueue<Integer> queue : thisHost.getPendingAcks()) {
+                if(queue.isEmpty()) {
+                    ++indexOfTargetHost;
+                    continue;
+                }
+
+                Queue<Integer> ackList = new LinkedList<>();
                 queue.drainTo(ackList, 32);
 
-                Message message = new Message(thisHost.getId(), packetId.getAndIncrement(), MsgPacket.serialize(ackList));
-
+                AcksPacket packet = new AcksPacket(thisHost.getId(), packetId.getAndIncrement(), ackList);
+                assert thisHost.getAckPacketsQueue().offer(packet) : "Offer to getAckPacketsQueue failed";
+                link.send(hosts.get(indexOfTargetHost), packet);
+                ++indexOfTargetHost;
             }
         }
         
