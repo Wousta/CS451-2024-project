@@ -2,10 +2,13 @@ package cs451;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.LinkedBlockingDeque;
+import java.util.concurrent.LinkedBlockingQueue;
 
-import cs451.packets.Packet;
+import cs451.packets.*;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -23,6 +26,7 @@ public class Host {
     private DatagramSocket socket;
     
     private List<ConcurrentMap<Integer,Packet>> delivered;
+    private List<BlockingQueue<Integer>> pendingAcks;
     private ConcurrentMap<Integer,Packet> sent = new ConcurrentHashMap<>(64, 0.75f, Constants.N_THREADS);
 
     public boolean populate(String idString, String ipString, String portString) {
@@ -54,11 +58,13 @@ public class Host {
         return true;
     }
 
-    public void initMapDelivered(int nHosts) {
+    public void initLists(int nHosts) {
         delivered = new ArrayList<>(nHosts);
+        pendingAcks = new ArrayList<>(nHosts);
         
         for (int i = 0; i < nHosts; i++) {
-            delivered.add(new ConcurrentHashMap<>(64, 0.75f, Constants.N_THREADS));
+            delivered.add(new ConcurrentHashMap<>(32, 0.75f, Constants.N_THREADS));
+            pendingAcks.add(new LinkedBlockingQueue<>());
         }
     }
 
@@ -121,8 +127,17 @@ public class Host {
         return outputPath;
     }
 
+    /**
+     * Used to know if the packet we received is older than last ack and
+     * therefore should be ignored.
+     * @return the most recent timestamp received in an ack from this host
+     */
     public int getLastAck() {
         return lastAck;
+    }
+
+    public List<BlockingQueue<Integer>> getPendingAcks() {
+        return pendingAcks;
     }
 
     // SETTERS ================================================

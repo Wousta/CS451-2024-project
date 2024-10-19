@@ -2,6 +2,7 @@ package cs451.links;
 
 import cs451.Host;
 import cs451.packets.Message;
+import cs451.packets.MsgPacket;
 import cs451.packets.Packet;
 
 import java.util.List;
@@ -40,7 +41,7 @@ public class StubbornLink {
         }
     }
 
-    public Packet deliver() {
+    public byte[] deliver() {
         return fll.deliver();
     }
 
@@ -58,7 +59,7 @@ public class StubbornLink {
         public void run() {
             System.out.println("\nRunning timerTask StubbornLinks con sent size: " + sent.size());
             //logger.addLine("Running timerTask StubbornLinks con sent size: " + sent.size());
-            System.out.println("Map: " + sent);
+            //System.out.println("Map: " + sent);
             sent.forEach((id, packet) -> fll.send(destinationHost, packet));
         }
 

@@ -23,6 +23,7 @@ public class Main {
         System.out.println("Immediately stopping network packet processing.");
         executor.shutdown();
         try {
+            // Wait a bit for threads to finish and stop all of them after
             if (!executor.awaitTermination(800, TimeUnit.MILLISECONDS)) {
                 executor.shutdownNow();
             } 
@@ -54,7 +55,7 @@ public class Main {
         executor = Executors.newScheduledThreadPool(4);
         String config = parser.config();
         Host thisHost = parser.hosts().get(parser.myIndex());
-        Scheduler scheduler;
+        PPLScheduler scheduler;
         int[] input;
 
         System.out.println("output: " + parser.output());
@@ -64,7 +65,7 @@ public class Main {
         try (BufferedReader reader = new BufferedReader(new FileReader(config))) {
             String[] parts = reader.readLine().trim().split("\\s+");
             input = Arrays.stream(parts).mapToInt(Integer::parseInt).toArray();
-            scheduler = new Scheduler(parser, logger, executor);
+            scheduler = new PPLScheduler(parser, logger, executor);
         }
         catch(Exception e){
             System.err.println("Bad initialization");

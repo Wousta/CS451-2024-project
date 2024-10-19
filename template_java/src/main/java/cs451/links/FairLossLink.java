@@ -7,9 +7,12 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import cs451.Host;
+import cs451.packets.AcksPacket;
 import cs451.packets.Message;
+import cs451.packets.MsgPacket;
 import cs451.packets.Packet;
 
 /**
@@ -19,6 +22,8 @@ import cs451.packets.Packet;
 public class FairLossLink {
 
     private final DatagramSocket socket;
+    // The size will be incremented if some packet exceeds the expected size
+    private AtomicInteger bufSize = new AtomicInteger(Packet.EXPECTED_SIZE);
 
     public FairLossLink(DatagramSocket socket) {
         this.socket = socket;
@@ -32,6 +37,10 @@ public class FairLossLink {
     public void send(Host host, Packet packet) {
         try {
             byte[] buf = Packet.serialize(packet);
+            System.out.println("Buf length = " + buf.length);
+            if(buf.length > bufSize.get()) {
+                bufSize.set(buf.length);
+            }
             socket.send(new DatagramPacket(buf, buf.length, host.getInetAddress(), host.getPort()));
         } catch (IOException e) {
             e.printStackTrace();
@@ -46,14 +55,29 @@ public class FairLossLink {
      * @return the deserialized Message
      */
     // TODO: a thread has to be used to keep listening and appending received messages, while another thread processes them
-    public Packet deliver() {
+    public byte[] deliver() {
         DatagramPacket packet;
-        packet = new DatagramPacket(new byte[Packet.MAX_PACKET_SIZE], Packet.MAX_PACKET_SIZE);
+        packet = new DatagramPacket(new byte[bufSize.get()], bufSize.get());
         try {
             socket.receive(packet);
         } catch (IOException e) {
             e.printStackTrace();
         }
-        return (Packet)Packet.deSerialize(packet.getData());
+        byte[] data = packet.getData();
+        System.out.println("Bytes length = " + data.length);
+        // Should not be happening
+        if(data.length > bufSize.get()) {
+            adjustBufSize(data);
+            return null;
+        }
+        return data;
     }
+
+    private void adjustBufSize(byte[] data) {
+        int newSize = bufSize.get()*2;
+
+        if(newSize > Packet.MAX_PACKET_SIZE) bufSize.set(Packet.MAX_PACKET_SIZE);
+        else bufSize.set(newSize);
+    }
+
 }
