@@ -17,8 +17,8 @@ public class AcksPacket extends Packet {
     private boolean ackStep = ACK_RECEIVER;
     private Queue<Integer> acks;
 
-    public AcksPacket(int hostId, int packetId, Queue<Integer> acks) {
-        super(hostId, packetId);
+    public AcksPacket(byte hostId, byte destinationHostId, int packetId, Queue<Integer> acks) {
+        super(hostId, destinationHostId, packetId);
         this.acks = acks;
     }
 

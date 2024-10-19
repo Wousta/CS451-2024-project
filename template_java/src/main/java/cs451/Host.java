@@ -17,8 +17,8 @@ public class Host {
 
     private static final String IP_START_REGEX = "/";
 
-    private int lastAck = 0; // Most recent timestamp received in an ack from this host
-    private int id;
+    private int lastTimeStamp = 0; // Most recent timestamp received in an ack from this host
+    private byte id;
     private String ip;
     private int port = -1;
     private String outputPath;
@@ -44,12 +44,13 @@ public class Host {
     /**
      * Stores the sent packets. It is a hashmap for fast lookup of packets when iterating
      * the queue of ack message indexes that specifies packets to be deleted.
+     * The key is the PacketId.
      */
     private ConcurrentMap<Integer,Packet> sent = new ConcurrentHashMap<>(64, 0.75f, Constants.N_THREADS);
 
     public boolean populate(String idString, String ipString, String portString) {
         try {
-            id = Integer.parseInt(idString);
+            id = Byte.parseByte(idString); ////////////// WARNING TEMPLATE CODE CHANGE //////////////
             String ipTest = InetAddress.getByName(ipString).toString();
             if (ipTest.startsWith(IP_START_REGEX)) {
                 ip = ipTest.substring(1);
@@ -91,7 +92,7 @@ public class Host {
      * Do not use to get index of Host in hosts list
      * @return Id of this host
      */
-    public int getId() {
+    public byte getId() {
         return id;
     }
 
@@ -146,12 +147,12 @@ public class Host {
     }
 
     /**
-     * Used to know if the packet we received is older than last ack and
+     * Used to know if the packet we received is older than last ack received from this host and
      * therefore should be ignored.
      * @return the most recent timestamp received in an ack from this host
      */
-    public int getLastAck() {
-        return lastAck;
+    public int getLastTimeStamp() {
+        return lastTimeStamp;
     }
 
     public List<BlockingQueue<Integer>> getPendingAcks() {
@@ -172,8 +173,8 @@ public class Host {
         this.outputPath = outputPath;
     }
 
-    public void setLastAck(int lastAckTimestamp) {
-        this.lastAck = lastAckTimestamp;
+    public void setLastTimeStamp(int lastAckTimestamp) {
+        this.lastTimeStamp = lastAckTimestamp;
     }
 
 }

@@ -34,7 +34,13 @@ public class FairLossLink {
             if(buf.length > bufSize.get()) {
                 bufSize.set(buf.length);
             }
-            socket.send(new DatagramPacket(buf, buf.length, host.getInetAddress(), host.getPort()));
+            socket.send(new DatagramPacket(
+                buf, 
+                buf.length, 
+                host.getInetAddress(), 
+                host.getPort()
+            ));
+
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -50,7 +56,8 @@ public class FairLossLink {
     // TODO: a thread has to be used to keep listening and appending received messages, while another thread processes them
     public byte[] deliver() {
         DatagramPacket packet;
-        packet = new DatagramPacket(new byte[bufSize.get()], bufSize.get());
+        int size = bufSize.get();
+        packet = new DatagramPacket(new byte[size], size);
         try {
             socket.receive(packet);
         } catch (IOException e) {
@@ -58,15 +65,11 @@ public class FairLossLink {
         }
         byte[] data = packet.getData();
         System.out.println("Bytes length = " + data.length);
-        // Should not be happening
-        if(data.length > bufSize.get()) {
-            adjustBufSize(data);
-            return null;
-        }
+
         return data;
     }
 
-    private void adjustBufSize(byte[] data) {
+    public void adjustBufSize() {
         int newSize = bufSize.get()*2;
 
         if(newSize > Packet.MAX_PACKET_SIZE) bufSize.set(Packet.MAX_PACKET_SIZE);

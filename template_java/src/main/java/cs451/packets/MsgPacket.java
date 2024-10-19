@@ -10,8 +10,8 @@ public class MsgPacket extends Packet {
     //private boolean isAck = false;
     private final List<Message> messages = new ArrayList<>(8);
 
-    public MsgPacket(int hostId, int packetId) {
-        super(hostId, packetId);
+    public MsgPacket(byte hostId, byte destinationHostId, int packetId) {
+        super(hostId, destinationHostId, packetId);
     }
 
     public boolean addMessage(Message msg) {

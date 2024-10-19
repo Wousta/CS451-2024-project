@@ -1,10 +1,13 @@
 package cs451.links;
 
 import java.io.IOException;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Queue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import cs451.Host;
 import cs451.packets.AcksPacket;
@@ -17,16 +20,20 @@ public class PerfectLink {
 
     private StubbornLink sl;
     private Logger logger;
+    private Host thiHost;
+    private AtomicInteger packetId;
     private List<Host> hosts;
     private List<ConcurrentMap<Integer,Packet>> delivered;
     private List<BlockingQueue<Integer>> pendingAcks;
 
-    public PerfectLink(Host thisHost, List<Host> hosts, Logger logger, ScheduledExecutorService executor){
+    public PerfectLink(Host thisHost, List<Host> hosts, Logger logger, ScheduledExecutorService executor, AtomicInteger packetId){
         sl = new StubbornLink(thisHost, hosts, executor);
         delivered = thisHost.getDelivered();
         pendingAcks = thisHost.getPendingAcks();
+        this.thiHost = thisHost;
         this.hosts = hosts;
         this.logger = logger;
+        this.packetId = packetId;
     }
 
     public void send(Host h, Packet p) {
@@ -42,10 +49,17 @@ public class PerfectLink {
         try {
             Object obj = Packet.deSerialize(data);
             // Acks packets only contain one message and are lighter when sending
-            if(obj instanceof MsgPacket) handleMsgPacket(data);
-            if(obj instanceof AcksPacket) handleAcksPacket(data);
+            if(obj instanceof MsgPacket) {
+                handleMsgPacket(data);
+            }
+
+            if(obj instanceof AcksPacket) {
+                handleAcksPacket(data);
+            }
+
         } catch (Exception e) {
-            e.printStackTrace();
+            System.out.println("Size of buffer was too small ===========================");
+            sl.fllIncreaseBufSize();
         } 
     }
 
@@ -53,18 +67,19 @@ public class PerfectLink {
 
     private void handleMsgPacket(byte[] data) throws ClassNotFoundException, IOException {
         MsgPacket packet = (MsgPacket)Packet.deSerialize(data);
-        int packetId = packet.getPacketId();
-        int lastAck = hosts.get(packet.getHostIndex()).getLastAck();
-        BlockingQueue<Integer> senderAcks = pendingAcks.get(packet.getHostIndex());
-        ConcurrentMap<Integer,Packet> senderDelivered = delivered.get(packet.getHostIndex());
+        int senderTimeStamp = packet.getTimeStamp();
+        int senderIndex = packet.getHostIndex();
+        int lastTimeStamp = hosts.get(senderIndex).getLastTimeStamp();
+        BlockingQueue<Integer> senderAcks = pendingAcks.get(senderIndex);
+        ConcurrentMap<Integer,Packet> senderDelivered = delivered.get(senderIndex);
 
         // Test if packet already delivered and id is not older than last ack
-        if(!senderDelivered.containsKey(packetId) && packetId > lastAck) {
+        if(!senderDelivered.containsKey(senderIndex) && senderTimeStamp > lastTimeStamp) {
             System.out.println("Recibido paquete: " + packet.toString());
-            senderDelivered.put(packetId, packet);
+            senderDelivered.put(senderIndex, packet);
 
             // Add id of packet to pending packets to be acked, we only send Ids for acking.
-            assert senderAcks.offer(packetId) : "senderAcks offer should not return false";
+            assert senderAcks.offer(senderIndex) : "senderAcks offer should not return false";
 
             for(Message m : packet.getMessages()) {
                 System.out.println("d " + m.getHostId() + " " + (String)MsgPacket.deSerialize(m.getData()));
@@ -78,10 +93,54 @@ public class PerfectLink {
         AcksPacket packet = (AcksPacket)Packet.deSerialize(data);
 
         if(packet.getAckStep() == AcksPacket.ACK_RECEIVER) {
+            System.out.println("Received ack from receiver");
+
             // TODO: Thread clear sent messages
-            
+            Queue<Integer> acksQueue = packet.getAcks();
+            ConcurrentMap<Integer,Packet> sent = thiHost.getSent();
+
+            for(int packetId : acksQueue) {
+                sent.remove(packetId);
+            }
+            //acksQueue.clear();
+            // with this host id and the receiver packet id, so that receiver can search in sender's delivered map
+            AcksPacket ackOk = new AcksPacket(
+                thiHost.getId(),
+                packet.getHostId(), 
+                packet.getPacketId(), 
+                acksQueue
+            );
+            ackOk.setAckStep(AcksPacket.ACK_SENDER);
+            ackOk.setTimeStamp(packetId.getAndIncrement());
+
+            // Send it back (ack ok) with the ACK_SENDER flag so that receiver can clear delivered queue
+            thiHost.getAckPacketsQueue().add(ackOk);
         }
+
         if(packet.getAckStep() == AcksPacket.ACK_SENDER) {
+            System.out.println("Received ack from sender");
+
+            int senderIndex = packet.getHostIndex();
+
+            // Update last ack received from this host to ignore old messages
+            hosts.get(senderIndex).setLastTimeStamp(packet.getTimeStamp());
+
+            Queue<Integer> acksQueue = packet.getAcks();
+            ConcurrentMap<Integer,Packet> delivered = thiHost.getDelivered().get(senderIndex);
+
+            // Delete delivered messages of this sender, they will not be received anymore
+            for(int packetId : acksQueue) {
+                delivered.remove(packetId);
+            }
+            // TODO: clear ack
+            Iterator<AcksPacket> it = thiHost.getAckPacketsQueue().iterator();
+            boolean found = false;
+            while(it.hasNext() && !found) {
+                if(it.next().getPacketId() == packet.getPacketId()) {
+                    it.remove();
+                    found = true;
+                }
+            }
 
         }
         

@@ -9,17 +9,22 @@ import java.io.Serializable;
 
 public abstract class Packet implements Serializable {
     public static final int MAX_PACKET_SIZE = 65504; // 64KiB - 32
-    public static final int EXPECTED_SIZE = 529;
+    public static final int EXPECTED_SIZE = 569;
 
-    protected final int hostId;
+    protected final byte hostId;
     protected final int packetId; // Serves as timestamp, since it is incremented by an atomic int each time a packet is created
+    protected int timeStamp;
+    protected byte lastHop;  // Last host Id that received the message
+    protected byte targetHostId; // Used by stubbornLink to know to which host each packet has to be sent
 
-    protected Packet(int hostId, int packetId) {
+    protected Packet(byte hostId, byte targetHostId, int packetId) {
         this.hostId = hostId;
+        this.targetHostId = targetHostId;
         this.packetId = packetId;
+        this.timeStamp = packetId;
     }
 
-    public int getHostId() {
+    public byte getHostId() {
         return hostId;
     }
 
@@ -29,6 +34,30 @@ public abstract class Packet implements Serializable {
 
     public int getHostIndex() {
         return hostId-1;
+    }
+
+    public int getLastHop() {
+        return lastHop;
+    }
+
+    public void setLastHop(byte lastHop) {
+        this.lastHop = lastHop;
+    }
+
+    public int getTimeStamp() {
+        return timeStamp;
+    }
+
+    public void setTimeStamp(int timeStamp) {
+        this.timeStamp = timeStamp;
+    }
+
+    public byte getTargetHostId() {
+        return targetHostId;
+    }
+
+    public byte getTargetHostIndex() {
+        return (byte) (targetHostId - 1);
     }
 
     // Code from: https://stackoverflow.com/questions/2836646/java-serializable-object-to-byte-array

@@ -24,7 +24,7 @@ public class StubbornLink {
         executor.scheduleWithFixedDelay(() -> {
             System.out.println("\nRunning timerTask StubbornLinks con sent size: " + sent.size());
             //logger.addLine("Running timerTask StubbornLinks con sent size: " + sent.size());
-            sent.forEach((id, packet) -> fll.send(hosts.get(packet.getHostIndex()), packet));
+            sent.forEach((id, packet) -> fll.send(hosts.get(packet.getTargetHostIndex()), packet));
         }, 500, 1000, TimeUnit.MILLISECONDS);
     }
 
@@ -39,6 +39,10 @@ public class StubbornLink {
 
     public byte[] deliver() {
         return fll.deliver();
+    }
+
+    public void fllIncreaseBufSize() {
+        fll.adjustBufSize();
     }
 
 }
