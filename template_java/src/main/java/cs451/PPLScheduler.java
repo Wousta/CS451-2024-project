@@ -16,27 +16,28 @@ import cs451.links.PerfectLink;
 import cs451.packets.AcksPacket;
 import cs451.packets.Message;
 import cs451.packets.MsgPacket;
+import cs451.packets.Packet;
 import cs451.parsers.Logger;
 import cs451.parsers.Parser;
 
 public class PPLScheduler {
     private AtomicInteger packetId = new AtomicInteger(1);
     private List<Host> hosts;
-    private Host thisHost;
+    private Host selfHost;
     private Logger logger;
     private ScheduledExecutorService executor;
 
     public PPLScheduler(Parser parser, Logger logger, ScheduledExecutorService executor) throws SocketException, UnknownHostException {
         this.hosts = parser.hosts();
-        thisHost = hosts.get(parser.myIndex());
+        selfHost = hosts.get(parser.myIndex());
 
-        thisHost.setSocket(new DatagramSocket(
-            thisHost.getPort(), 
-            InetAddress.getByName(thisHost.getIp())
+        selfHost.setSocket(new DatagramSocket(
+            selfHost.getPort(), 
+            InetAddress.getByName(selfHost.getIp())
         ));
 
-        thisHost.setOutputPath(parser.output());
-        thisHost.initLists(hosts.size());
+        selfHost.setOutputPath(parser.output());
+        selfHost.initLists(hosts.size());
         this.logger = logger;
         this.executor = executor;
     }
@@ -45,9 +46,9 @@ public class PPLScheduler {
         int msgsToSend = params[0];
         int receiverId = params[1];
 
-        System.out.println("I am the sender with ID" + thisHost.getId() + ", sending messages...");
+        System.out.println("I am the sender with ID" + selfHost.getId() + ", sending messages...");
         PerfectLink link = new PerfectLink(
-            thisHost, 
+            selfHost, 
             hosts, 
             logger, 
             executor, 
@@ -60,12 +61,26 @@ public class PPLScheduler {
         );
         
         executor.execute(sender);
+
+        executor.execute( () -> {
+            while(true) link.deliver();
+        });
+
+        executor.scheduleWithFixedDelay( () -> {
+            Queue<AcksPacket> acksQueue = selfHost.getAckPacketsQueue();
+            System.out.println("Sending acks con acks size: " + acksQueue.size());
+            while(!acksQueue.isEmpty()) {
+                Packet packet = acksQueue.poll();
+                link.send(hosts.get(packet.getHostIndex()), packet);
+            }
+        }, 180, 200, TimeUnit.MILLISECONDS);
+
     }
 
     protected void runPerfectReceiver() {
-        System.out.println("I am the receiver with ID: " + thisHost.getId() + ", delivering messages...");
+        System.out.println("I am the receiver with ID: " + selfHost.getId() + ", delivering messages...");
         PerfectLink link = new PerfectLink(
-            thisHost, 
+            selfHost, 
             hosts, 
             logger, 
             executor, 
@@ -80,17 +95,18 @@ public class PPLScheduler {
 
         executor.scheduleWithFixedDelay(
             ackBuildAndSend, 
-            50, 
-            100, 
+            250, 
+            200, 
             TimeUnit.MILLISECONDS
         );
 
         executor.scheduleWithFixedDelay( () -> {
-            System.out.println("Sending acks");
-            for(AcksPacket p : thisHost.getAckPacketsQueue()) {
-                link.send(hosts.get(p.getHostIndex()), p);
+            Queue<AcksPacket> acksQueue = selfHost.getAckPacketsQueue();
+            System.out.println("Sending acks con acks size: " + acksQueue.size());
+            for(AcksPacket packet : acksQueue) {
+                link.send(hosts.get(packet.getHostIndex()), packet);
             }
-        }, 180, 200, TimeUnit.MILLISECONDS);
+        }, 350, 200, TimeUnit.MILLISECONDS);
     }
 
     private class MessageSender implements Runnable {
@@ -106,7 +122,7 @@ public class PPLScheduler {
 
         public void sendPacket(int msgsToAdd, int currentMsgId) {
             Host targetHost = hosts.get(receiverId-1);
-            byte thisHostId = thisHost.getId();
+            byte thisHostId = selfHost.getId();
             MsgPacket packet = new MsgPacket(thisHostId, targetHost.getId(), packetId.getAndIncrement());
 
             for(int i = 0; i < msgsToAdd; i++) {
@@ -150,7 +166,7 @@ public class PPLScheduler {
         @Override
         public void run() {
             int indexOfTargetHost = 0;
-            for(BlockingQueue<Integer> queue : thisHost.getPendingAcks()) {
+            for(BlockingQueue<Integer> queue : selfHost.getPendingAcks()) {
                 if(queue.isEmpty()) {
                     ++indexOfTargetHost;
                     continue;
@@ -159,10 +175,12 @@ public class PPLScheduler {
                 Queue<Integer> ackList = new LinkedList<>();
 
                 queue.drainTo(ackList, 32);
-                System.out.println("Sending acklist: " + ackList);
+                System.out.println("Sending acklist ACKbuild and send: " + ackList);
 
-                AcksPacket packet = new AcksPacket(thisHost.getId(), targetHost.getId(), packetId.getAndIncrement(), ackList);
-                assert thisHost.getAckPacketsQueue().offer(packet) : "Offer to getAckPacketsQueue failed";
+                AcksPacket packet = new AcksPacket(selfHost.getId(), targetHost.getId(), packetId.getAndIncrement(), ackList);
+                if(!selfHost.getAckPacketsQueue().offer(packet)) {
+                    System.out.println("OFFER TO ACKSPACKETQUEUE FAILED");
+                }
                 link.send(targetHost, packet);
                 ++indexOfTargetHost;
             }

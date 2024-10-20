@@ -27,6 +27,7 @@ public class Host {
     /**
      * Stores delivered messages from each sender. To create ack messages
      * get the keyset and put it in payload of ack message packet
+     * Key of the map is the id of the message, position on the list is the host that sent the message
      */
     private List<ConcurrentMap<Integer,Packet>> delivered;
 
