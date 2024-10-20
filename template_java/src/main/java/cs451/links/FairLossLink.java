@@ -30,7 +30,7 @@ public class FairLossLink {
     public void send(Host host, Packet packet) {
         try {
             byte[] buf = Packet.serialize(packet);
-            System.out.println("Buf length = " + buf.length);
+            //System.out.println("Buf length = " + buf.length);
             if(buf.length > bufSize.get()) {
                 bufSize.set(buf.length);
             }

@@ -46,7 +46,6 @@ public class PPLScheduler {
         int msgsToSend = params[0];
         int receiverId = params[1];
 
-        System.out.println("I am the sender with ID" + selfHost.getId() + ", sending messages...");
         PerfectLink link = new PerfectLink(
             selfHost, 
             hosts, 
@@ -66,19 +65,18 @@ public class PPLScheduler {
             while(true) link.deliver();
         });
 
-        executor.scheduleWithFixedDelay( () -> {
-            Queue<AcksPacket> acksQueue = selfHost.getAckPacketsQueue();
-            System.out.println("Sending acks con acks size: " + acksQueue.size());
-            while(!acksQueue.isEmpty()) {
-                Packet packet = acksQueue.poll();
-                link.send(hosts.get(packet.getHostIndex()), packet);
-            }
-        }, 180, 200, TimeUnit.MILLISECONDS);
+        // executor.scheduleWithFixedDelay( () -> {
+        //     Queue<AcksPacket> acksQueue = selfHost.getAckPacketsQueue();
+        //     System.out.println("Sending acks con acks size: " + acksQueue.size());
+        //     while(!acksQueue.isEmpty()) {
+        //         Packet packet = acksQueue.poll();
+        //         link.sendAckOk(hosts.get(packet.getHostIndex()), packet);
+        //     }
+        // }, 150, 50, TimeUnit.MILLISECONDS);
 
     }
 
     protected void runPerfectReceiver() {
-        System.out.println("I am the receiver with ID: " + selfHost.getId() + ", delivering messages...");
         PerfectLink link = new PerfectLink(
             selfHost, 
             hosts, 
@@ -95,18 +93,19 @@ public class PPLScheduler {
 
         executor.scheduleWithFixedDelay(
             ackBuildAndSend, 
-            250, 
-            200, 
+            70, 
+            5, 
             TimeUnit.MILLISECONDS
         );
 
-        executor.scheduleWithFixedDelay( () -> {
-            Queue<AcksPacket> acksQueue = selfHost.getAckPacketsQueue();
-            System.out.println("Sending acks con acks size: " + acksQueue.size());
-            for(AcksPacket packet : acksQueue) {
-                link.send(hosts.get(packet.getHostIndex()), packet);
-            }
-        }, 350, 200, TimeUnit.MILLISECONDS);
+
+        // executor.scheduleWithFixedDelay( () -> {
+        //     Queue<AcksPacket> acksQueue = selfHost.getAckPacketsQueue();
+        //     System.out.println("Sending acks con acks size: " + acksQueue.size());
+        //     for(AcksPacket packet : acksQueue) {
+        //         link.send(hosts.get(packet.getHostIndex()), packet);
+        //     }
+        // }, 350, 200, TimeUnit.MILLISECONDS);
     }
 
     private class MessageSender implements Runnable {
@@ -131,7 +130,7 @@ public class PPLScheduler {
                 byte[] payload = MsgPacket.serialize(Integer.toString(currentMsgId));
 
                 packet.addMessage(new Message(thisHostId, currentMsgId, payload));
-                System.out.println("b " + currentMsgId);
+                //System.out.println("b " + currentMsgId);
                 logger.addLine("b " + currentMsgId);
                 ++currentMsgId;
             }
@@ -147,9 +146,17 @@ public class PPLScheduler {
             int lastIters = msgsToSend % msgsPerPacket;
             System.out.println("Iters = " + iters + " lastIters = " + lastIters);
             for(int i = 0; i < iters; i++) {
-                System.out.println("sendpacket================================");
+                //System.out.println("sendpacket================================");
                 sendPacket(msgsPerPacket, msgId);
                 msgId += 8;
+                if(i % 32 == 0) {
+                    try {
+                        Thread.sleep(800);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                        Thread.currentThread().interrupt();
+                    }
+                }
             }
             // Send remaining messages
             sendPacket(lastIters, msgId);
@@ -175,7 +182,7 @@ public class PPLScheduler {
                 Queue<Integer> ackList = new LinkedList<>();
 
                 queue.drainTo(ackList, 32);
-                System.out.println("Sending acklist ACKbuild and send: " + ackList);
+                //System.out.println("Sending acklist ACKbuild and send: " + ackList);
 
                 AcksPacket packet = new AcksPacket(selfHost.getId(), targetHost.getId(), packetId.getAndIncrement(), ackList);
                 if(!selfHost.getAckPacketsQueue().offer(packet)) {

@@ -24,11 +24,11 @@ public class StubbornLink {
         executor.scheduleWithFixedDelay(() -> {
             System.out.println("\nRunning timerTask StubbornLinks con sent size: " + sent.size());
             if(sent.size() == 1) {
-                
+
             }
             //logger.addLine("Running timerTask StubbornLinks con sent size: " + sent.size());
             sent.forEach((id, packet) -> fll.send(hosts.get(packet.getTargetHostIndex()), packet));
-        }, 500, 1000, TimeUnit.MILLISECONDS);
+        }, 1000, 1000, TimeUnit.MILLISECONDS);
     }
 
     public void send(Host h, Packet p) {
@@ -38,6 +38,19 @@ public class StubbornLink {
         } catch(Exception e) {
             e.printStackTrace();
         }
+    }
+
+    /**
+     * When sending ack ok the packet should not be put in sent messages for resending.
+     * This method is equivalent to send() except it does not store the message in sent map.
+     * The reason is that if this ack ok does not arrive, the ack message will be resent from the receiver,
+     * But if this ack ok is kept in sent messages, it would need to be cleaned and therefore needs another
+     * ack message for the ack ok message, starting an infinite loop of acks.
+     * @param h the target host
+     * @param p the ack ok packet to be sent
+     */
+    public void sendAckOk(Host h, Packet p) {
+        fll.send(h, p); 
     }
 
     public byte[] deliver() {

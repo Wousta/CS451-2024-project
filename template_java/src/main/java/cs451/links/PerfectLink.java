@@ -40,6 +40,10 @@ public class PerfectLink {
         sl.send(h, p);
     }
 
+    public void sendAckOk(Host h, Packet p) {
+        sl.sendAckOk(h, p);
+    }
+
     public void deliver() {
         byte[] data = sl.deliver();
 
@@ -88,8 +92,7 @@ public class PerfectLink {
             }
         }
         else {
-            System.out.println("Pending acks size = " + senderAcks.size());
-            System.out.println("Already delivered: " + packet);
+            System.out.println("Already delivered pending acks size = " + senderAcks.size());
         }
     }
 
@@ -118,7 +121,8 @@ public class PerfectLink {
             ackOk.setTimeStamp(packetId.getAndIncrement());
 
             // Send it back (ack ok) with the ACK_SENDER flag so that receiver can clear delivered queue
-            selfHost.getAckPacketsQueue().add(ackOk);
+            //selfHost.getAckPacketsQueue().add(ackOk);
+            sendAckOk(hosts.get(ackOk.getTargetHostIndex()), ackOk); // TODO: potential concurrency issue, executor?
         }
 
         if(packet.getAckStep() == AcksPacket.ACK_SENDER) {
@@ -137,14 +141,16 @@ public class PerfectLink {
                 delivered.remove(packetId);
             }
             // TODO: clear ack
-            Iterator<AcksPacket> it = selfHost.getAckPacketsQueue().iterator();
-            boolean found = false;
-            while(it.hasNext() && !found) {
-                if(it.next().getPacketId() == packet.getPacketId()) {
-                    it.remove();
-                    found = true;
-                }
-            }
+            selfHost.getSent().remove(packet.getPacketId());
+            
+            // Iterator<AcksPacket> it = selfHost.getAckPacketsQueue().iterator();
+            // boolean found = false;
+            // while(it.hasNext() && !found) {
+            //     if(it.next().getPacketId() == packet.getPacketId()) {
+            //         it.remove();
+            //         found = true;
+            //     }
+            // }
 
         }
         
