@@ -22,13 +22,13 @@ public class StubbornLink {
         sent = thisHost.getSent();
 
         executor.scheduleWithFixedDelay(() -> {
-            System.out.println("\nRunning timerTask StubbornLinks con sent size: " + sent.size());
+            System.out.println("\nTimerTask StubbornLinks con sent size: " + sent.size());
             if(sent.size() == 1) {
 
             }
             //logger.addLine("Running timerTask StubbornLinks con sent size: " + sent.size());
             sent.forEach((id, packet) -> fll.send(hosts.get(packet.getTargetHostIndex()), packet));
-        }, 1000, 1000, TimeUnit.MILLISECONDS);
+        }, 500, 500, TimeUnit.MILLISECONDS);
     }
 
     public void send(Host h, Packet p) {

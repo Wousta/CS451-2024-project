@@ -62,7 +62,7 @@ public class PerfectLink {
             }
 
         } catch (Exception e) {
-            System.out.println("Size of buffer was too small ===========================");
+            //System.out.println("Size of buffer was too small ===========================");
             sl.fllIncreaseBufSize();
         } 
     }
@@ -75,24 +75,23 @@ public class PerfectLink {
         int senderTimeStamp = packet.getTimeStamp();
         int senderIndex = packet.getHostIndex();
         int lastTimeStamp = hosts.get(senderIndex).getLastTimeStamp();
-        BlockingQueue<Integer> senderAcks = pendingAcks.get(senderIndex);
         ConcurrentMap<Integer,Packet> senderDelivered = delivered.get(senderIndex);
 
         // Test if packet already delivered and id is not older than last ack
         if(!senderDelivered.containsKey(packetId) && senderTimeStamp > lastTimeStamp) {
-            System.out.println("Recibido paquete: " + packet.toString());
+            //System.out.println("Recibido paquete: " + packet.toString());
             senderDelivered.put(packetId, packet);
 
             // Add id of packet to pending packets to be acked, we only send Ids for acking.
-            senderAcks.offer(packetId);
+            pendingAcks.get(senderIndex).offer(packetId);
 
             for(Message m : packet.getMessages()) {
-                System.out.println("d " + m.getHostId() + " " + (String)MsgPacket.deSerialize(m.getData()));
+                //System.out.println("d " + m.getHostId() + " " + (String)MsgPacket.deSerialize(m.getData()));
                 logger.addLine("d " + m.getHostId() + " " + (String)MsgPacket.deSerialize(m.getData()));
             }
         }
         else {
-            System.out.println("Already delivered pending acks size = " + senderAcks.size());
+            //System.out.println("Already delivered packet " + packetId);
         }
     }
 
@@ -100,7 +99,7 @@ public class PerfectLink {
         AcksPacket packet = (AcksPacket)Packet.deSerialize(data);
 
         if(packet.getAckStep() == AcksPacket.ACK_RECEIVER) {
-            System.out.println("Received ack from receiver");
+            //System.out.println("Received ack from receiver");
 
             // TODO: Thread clear sent messages
             Queue<Integer> acksQueue = packet.getAcks();
@@ -126,7 +125,7 @@ public class PerfectLink {
         }
 
         if(packet.getAckStep() == AcksPacket.ACK_SENDER) {
-            System.out.println("Received ack from sender");
+            //System.out.println("Received ack from sender");
 
             int senderIndex = packet.getHostIndex();
 
@@ -154,7 +153,7 @@ public class PerfectLink {
 
         }
         
-        System.out.println("What are we doing here, just to suffer");
+        //System.out.println("What are we doing here, just to suffer");
     }
 
     private class ClearSentMessages implements Runnable {

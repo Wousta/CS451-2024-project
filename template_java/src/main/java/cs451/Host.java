@@ -40,7 +40,7 @@ public class Host {
      * Queues of the ack packets ready to be sent. It grows each time the pendingAcks queue
      * of a host is dumped into an AcksPacket, when ack ok is received from sender that AcksPacket is removed.
      */
-    private BlockingQueue<AcksPacket> ackPacketsQueue = new LinkedBlockingQueue<>(); // TODO: compare performance with hashmap
+    //private BlockingQueue<AcksPacket> ackPacketsQueue = new LinkedBlockingQueue<>(); // TODO: compare performance with hashmap
 
     /**
      * Stores the sent packets. It is a hashmap for fast lookup of packets when iterating
@@ -160,9 +160,9 @@ public class Host {
         return pendingAcks;
     }
 
-    public BlockingQueue<AcksPacket> getAckPacketsQueue() {
-        return ackPacketsQueue;
-    }
+    // public BlockingQueue<AcksPacket> getAckPacketsQueue() {
+    //     return ackPacketsQueue;
+    // }
 
     // SETTERS ================================================
     public void setSocket(DatagramSocket s) {

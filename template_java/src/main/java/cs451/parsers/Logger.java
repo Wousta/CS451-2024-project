@@ -3,11 +3,9 @@ package cs451.parsers;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.OutputStreamWriter;
-import java.io.PrintWriter;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.Queue;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 
 public class Logger {
     private static final BlockingQueue<String> outPutMsgs = new LinkedBlockingQueue<>();

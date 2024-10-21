@@ -91,10 +91,10 @@ public class PPLScheduler {
             while(true) link.deliver();
         });
 
-        executor.scheduleWithFixedDelay(
+        executor.scheduleAtFixedRate(
             ackBuildAndSend, 
-            70, 
-            5, 
+            100, 
+            50, 
             TimeUnit.MILLISECONDS
         );
 
@@ -144,16 +144,16 @@ public class PPLScheduler {
             int msgsPerPacket = MsgPacket.MAX_MSGS;
             int iters = msgsToSend/msgsPerPacket; // Each packet can store up to 8 messages
             int lastIters = msgsToSend % msgsPerPacket;
-            System.out.println("Iters = " + iters + " lastIters = " + lastIters);
+            //System.out.println("Iters = " + iters + " lastIters = " + lastIters);
             for(int i = 0; i < iters; i++) {
                 //System.out.println("sendpacket================================");
                 sendPacket(msgsPerPacket, msgId);
                 msgId += 8;
                 if(i % 32 == 0) {
                     try {
-                        Thread.sleep(800);
+                        Thread.sleep(300);
                     } catch (InterruptedException e) {
-                        e.printStackTrace();
+                        System.err.println("EXPECTED EXCEPTION: Mensajes enviados: " + msgId);
                         Thread.currentThread().interrupt();
                     }
                 }
@@ -179,15 +179,25 @@ public class PPLScheduler {
                     continue;
                 }
                 Host targetHost = hosts.get(indexOfTargetHost);
-                Queue<Integer> ackList = new LinkedList<>();
+                Queue<Integer> ackQueue = new LinkedList<>();
 
-                queue.drainTo(ackList, 32);
+                //queue.drainTo(ackQueue, 32);
+                int count = 0;
+                while(!queue.isEmpty() && count < 32) {
+                    try {
+                        ackQueue.add(queue.poll(5000, TimeUnit.MILLISECONDS));
+                    } catch (InterruptedException e) {
+                        System.err.println("Sleeping thread got interrupted while waiting for an ack to be polled");
+                        e.printStackTrace();
+                        Thread.currentThread().interrupt();
+                    }
+                }
                 //System.out.println("Sending acklist ACKbuild and send: " + ackList);
 
-                AcksPacket packet = new AcksPacket(selfHost.getId(), targetHost.getId(), packetId.getAndIncrement(), ackList);
-                if(!selfHost.getAckPacketsQueue().offer(packet)) {
-                    System.out.println("OFFER TO ACKSPACKETQUEUE FAILED");
-                }
+                AcksPacket packet = new AcksPacket(selfHost.getId(), targetHost.getId(), packetId.getAndIncrement(), ackQueue);
+                // if(!selfHost.getAckPacketsQueue().offer(packet)) {
+                //     System.out.println("OFFER TO ACKSPACKETQUEUE FAILED");
+                // }
                 link.send(targetHost, packet);
                 ++indexOfTargetHost;
             }

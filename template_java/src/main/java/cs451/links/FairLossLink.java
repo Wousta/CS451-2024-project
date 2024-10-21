@@ -64,7 +64,7 @@ public class FairLossLink {
             e.printStackTrace();
         }
         byte[] data = packet.getData();
-        System.out.println("Bytes length = " + data.length);
+        //System.out.println("Bytes length = " + data.length);
 
         return data;
     }
