@@ -3,9 +3,11 @@ package cs451.links;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
+import java.net.SocketException;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import cs451.Host;
+import cs451.packets.MsgPacket;
 import cs451.packets.Packet;
 
 /**
@@ -14,12 +16,18 @@ import cs451.packets.Packet;
  */
 public class FairLossLink {
 
-    private final DatagramSocket socket;
+    private final DatagramSocket socketReceive;
+    private final DatagramSocket socketSend;
+    private final DatagramSocket socketSendAck;
+    private final Object sendLock = new Object(); // Lock for socketSend
+    private final Object sendAckLock = new Object(); // Lock for socketSendAck
     // The size will be incremented if some packet exceeds the expected size
     private AtomicInteger bufSize = new AtomicInteger(Packet.EXPECTED_SIZE);
 
-    public FairLossLink(DatagramSocket socket) {
-        this.socket = socket;
+    public FairLossLink(DatagramSocket socketReceive) throws SocketException {
+        this.socketReceive = socketReceive;
+        this.socketSend = new DatagramSocket();
+        this.socketSendAck = new DatagramSocket();
     }
 
     /**
@@ -34,18 +42,30 @@ public class FairLossLink {
             if(buf.length > bufSize.get()) {
                 bufSize.set(buf.length);
             }
-            socket.send(new DatagramPacket(
-                buf, 
-                buf.length, 
-                host.getInetAddress(), 
-                host.getPort()
-            ));
-
+            if(packet instanceof MsgPacket) {
+                synchronized (sendLock) {
+                    socketSend.send(new DatagramPacket(
+                        buf, 
+                        buf.length, 
+                        host.getInetAddress(), 
+                        host.getPort()
+                    ));
+                }
+            }
+            else {
+                synchronized (sendAckLock) {
+                    socketSendAck.send(new DatagramPacket(
+                        buf, 
+                        buf.length, 
+                        host.getInetAddress(), 
+                        host.getPort()
+                    ));
+                }
+            }
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
-
 
     /**
      * Waits for a DatagramPacket and returns it deserialized into Message.
@@ -59,7 +79,7 @@ public class FairLossLink {
         int size = bufSize.get();
         packet = new DatagramPacket(new byte[size], size);
         try {
-            socket.receive(packet);
+            socketReceive.receive(packet);
         } catch (IOException e) {
             e.printStackTrace();
         }

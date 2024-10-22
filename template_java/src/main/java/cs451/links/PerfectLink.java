@@ -21,10 +21,13 @@ public class PerfectLink {
     private StubbornLink sl;
     private Logger logger;
     private Host selfHost;
-    private AtomicInteger packetId;
+    private AtomicInteger packetIdAtomic;
     private List<Host> hosts;
     private List<ConcurrentMap<Integer,Packet>> delivered;
     private List<BlockingQueue<Integer>> pendingAcks;
+
+    private final Object sentLock = new Object(); // Lock object for sent map
+    private final Object deliveredLock = new Object();
 
     public PerfectLink(Host selfHost, List<Host> hosts, Logger logger, ScheduledExecutorService executor, AtomicInteger packetId){
         sl = new StubbornLink(selfHost, hosts, executor);
@@ -33,7 +36,7 @@ public class PerfectLink {
         this.selfHost = selfHost;
         this.hosts = hosts;
         this.logger = logger;
-        this.packetId = packetId;
+        this.packetIdAtomic = packetId;
     }
 
     public void send(Host h, Packet p) {
@@ -86,8 +89,8 @@ public class PerfectLink {
             pendingAcks.get(senderIndex).offer(packetId);
 
             for(Message m : packet.getMessages()) {
-                //System.out.println("d " + m.getHostId() + " " + (String)MsgPacket.deSerialize(m.getData()));
-                logger.addLine("d " + m.getHostId() + " " + (String)MsgPacket.deSerialize(m.getData()));
+                System.out.println("d " + m.getHostId() + " " + (String)MsgPacket.deSerialize(m.getData()));
+                logger.addLine("d " + m.getHostId() + " " + (String)Packet.deSerialize(m.getData()));
             }
         }
         else {
@@ -100,71 +103,56 @@ public class PerfectLink {
 
         if(packet.getAckStep() == AcksPacket.ACK_RECEIVER) {
             //System.out.println("Received ack from receiver");
+            handleAckFromReceiver(packet);
+        }
 
-            // TODO: Thread clear sent messages
-            Queue<Integer> acksQueue = packet.getAcks();
-            ConcurrentMap<Integer,Packet> sent = selfHost.getSent();
+        else if(packet.getAckStep() == AcksPacket.ACK_SENDER) {
+            handleAckFromSender(packet);
+        }
 
+    }
+
+    private void handleAckFromReceiver(AcksPacket packet) {
+        Queue<Integer> acksQueue = packet.getAcks();
+        ConcurrentMap<Integer,Packet> sent = selfHost.getSent();
+
+        synchronized(sentLock) {
             for(int packetId : acksQueue) {
                 sent.remove(packetId);
             }
-            //acksQueue.clear();
-            // with this host id and the receiver packet id, so that receiver can search in sender's delivered map
-            AcksPacket ackOk = new AcksPacket(
-                selfHost.getId(),
-                packet.getHostId(), 
-                packet.getPacketId(), 
-                acksQueue
-            );
-            ackOk.setAckStep(AcksPacket.ACK_SENDER);
-            ackOk.setTimeStamp(packetId.getAndIncrement());
-
-            // Send it back (ack ok) with the ACK_SENDER flag so that receiver can clear delivered queue
-            //selfHost.getAckPacketsQueue().add(ackOk);
-            sendAckOk(hosts.get(ackOk.getTargetHostIndex()), ackOk); // TODO: potential concurrency issue, executor?
         }
+        
+        // with this host id and the receiver packet id, so that receiver can search in sender's delivered map
+        AcksPacket ackOk = new AcksPacket(
+            selfHost.getId(),
+            packet.getHostId(), 
+            packet.getPacketId(), 
+            acksQueue
+        );
+        ackOk.setAckStep(AcksPacket.ACK_SENDER);
+        ackOk.setTimeStamp(packetIdAtomic.getAndIncrement());
 
-        if(packet.getAckStep() == AcksPacket.ACK_SENDER) {
-            //System.out.println("Received ack from sender");
+        sendAckOk(hosts.get(ackOk.getTargetHostIndex()), ackOk);
+    }
 
-            int senderIndex = packet.getHostIndex();
+    private void handleAckFromSender(AcksPacket packet) {
+        //System.out.println("Received ack from sender");
+        int senderIndex = packet.getHostIndex();
 
-            // Update last ack received from this host to ignore old messages
-            hosts.get(senderIndex).setLastTimeStamp(packet.getTimeStamp());
+        // Update last ack received from this host to ignore old messages
+        hosts.get(senderIndex).setLastTimeStamp(packet.getTimeStamp());
 
-            Queue<Integer> acksQueue = packet.getAcks();
-            ConcurrentMap<Integer,Packet> delivered = selfHost.getDelivered().get(senderIndex);
+        Queue<Integer> acksQueue = packet.getAcks();
+        ConcurrentMap<Integer,Packet> delivered = selfHost.getDelivered().get(senderIndex);
 
-            // Delete delivered messages of this sender, they will not be received anymore
+        // Delete delivered messages of this sender, they will not be received anymore
+        synchronized(deliveredLock) {
             for(int packetId : acksQueue) {
                 delivered.remove(packetId);
             }
-            // TODO: clear ack
-            selfHost.getSent().remove(packet.getPacketId());
-            
-            // Iterator<AcksPacket> it = selfHost.getAckPacketsQueue().iterator();
-            // boolean found = false;
-            // while(it.hasNext() && !found) {
-            //     if(it.next().getPacketId() == packet.getPacketId()) {
-            //         it.remove();
-            //         found = true;
-            //     }
-            // }
-
         }
-        
-        //System.out.println("What are we doing here, just to suffer");
+
+        selfHost.getSent().remove(packet.getPacketId());
     }
 
-    private class ClearSentMessages implements Runnable {
-
-
-
-        @Override
-        public void run() {
-            // TODO Auto-generated method stub
-            throw new UnsupportedOperationException("Unimplemented method 'run'");
-        }
-        
-    }
 }

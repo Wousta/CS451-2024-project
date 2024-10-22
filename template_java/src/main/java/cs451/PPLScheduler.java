@@ -31,7 +31,7 @@ public class PPLScheduler {
         this.hosts = parser.hosts();
         selfHost = hosts.get(parser.myIndex());
 
-        selfHost.setSocket(new DatagramSocket(
+        selfHost.setSocketReceive(new DatagramSocket(
             selfHost.getPort(), 
             InetAddress.getByName(selfHost.getIp())
         ));
@@ -53,6 +53,7 @@ public class PPLScheduler {
             executor, 
             packetId
         );
+
         MessageSender sender = new MessageSender(
             msgsToSend, 
             receiverId, 
@@ -64,16 +65,6 @@ public class PPLScheduler {
         executor.execute( () -> {
             while(true) link.deliver();
         });
-
-        // executor.scheduleWithFixedDelay( () -> {
-        //     Queue<AcksPacket> acksQueue = selfHost.getAckPacketsQueue();
-        //     System.out.println("Sending acks con acks size: " + acksQueue.size());
-        //     while(!acksQueue.isEmpty()) {
-        //         Packet packet = acksQueue.poll();
-        //         link.sendAckOk(hosts.get(packet.getHostIndex()), packet);
-        //     }
-        // }, 150, 50, TimeUnit.MILLISECONDS);
-
     }
 
     protected void runPerfectReceiver() {
@@ -98,14 +89,6 @@ public class PPLScheduler {
             TimeUnit.MILLISECONDS
         );
 
-
-        // executor.scheduleWithFixedDelay( () -> {
-        //     Queue<AcksPacket> acksQueue = selfHost.getAckPacketsQueue();
-        //     System.out.println("Sending acks con acks size: " + acksQueue.size());
-        //     for(AcksPacket packet : acksQueue) {
-        //         link.send(hosts.get(packet.getHostIndex()), packet);
-        //     }
-        // }, 350, 200, TimeUnit.MILLISECONDS);
     }
 
     private class MessageSender implements Runnable {
@@ -127,7 +110,7 @@ public class PPLScheduler {
             for(int i = 0; i < msgsToAdd; i++) {
                 // To string because payload can be any datatype and it only has to be logged, 
                 // so parse to string to be able to cast to string when deserializing to log the message payload.
-                byte[] payload = MsgPacket.serialize(Integer.toString(currentMsgId));
+                byte[] payload = Packet.serialize(Integer.toString(currentMsgId));
 
                 packet.addMessage(new Message(thisHostId, currentMsgId, payload));
                 //System.out.println("b " + currentMsgId);
@@ -147,16 +130,18 @@ public class PPLScheduler {
             //System.out.println("Iters = " + iters + " lastIters = " + lastIters);
             for(int i = 0; i < iters; i++) {
                 //System.out.println("sendpacket================================");
-                sendPacket(msgsPerPacket, msgId);
-                msgId += 8;
-                if(i % 32 == 0) {
+                while(selfHost.getSent().size() > 128) {
                     try {
                         Thread.sleep(300);
                     } catch (InterruptedException e) {
                         System.err.println("EXPECTED EXCEPTION: Mensajes enviados: " + msgId);
+                        e.printStackTrace();
                         Thread.currentThread().interrupt();
                     }
-                }
+                } 
+                sendPacket(msgsPerPacket, msgId);
+                msgId += 8;
+                
             }
             // Send remaining messages
             sendPacket(lastIters, msgId);
@@ -183,7 +168,7 @@ public class PPLScheduler {
 
                 //queue.drainTo(ackQueue, 32);
                 int count = 0;
-                while(!queue.isEmpty() && count < 32) {
+                while(!queue.isEmpty() && count < 256) {
                     try {
                         ackQueue.add(queue.poll(5000, TimeUnit.MILLISECONDS));
                     } catch (InterruptedException e) {

@@ -9,7 +9,7 @@ import java.io.Serializable;
 
 public abstract class Packet implements Serializable {
     public static final int MAX_PACKET_SIZE = 65504; // 64KiB - 32
-    public static final int EXPECTED_SIZE = 594;
+    public static final int EXPECTED_SIZE = 3000;
 
     protected final byte hostId;
     protected final int packetId; // Serves as timestamp, since it is incremented by an atomic int each time a packet is created

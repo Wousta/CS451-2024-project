@@ -1,5 +1,6 @@
 package cs451.links;
 
+import java.net.SocketException;
 import java.util.List;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ScheduledExecutorService;
@@ -18,14 +19,15 @@ public class StubbornLink {
 
 
     public StubbornLink(Host thisHost, List<Host> hosts, ScheduledExecutorService executor){
-        fll = new FairLossLink(thisHost.getSocket());
-        sent = thisHost.getSent();
+        try {
+            fll = new FairLossLink(thisHost.getSocketReceive());
+        } catch (SocketException e) {
+            e.printStackTrace();
+        }
 
+        sent = thisHost.getSent();
         executor.scheduleWithFixedDelay(() -> {
             System.out.println("\nTimerTask StubbornLinks con sent size: " + sent.size());
-            if(sent.size() == 1) {
-
-            }
             //logger.addLine("Running timerTask StubbornLinks con sent size: " + sent.size());
             sent.forEach((id, packet) -> fll.send(hosts.get(packet.getTargetHostIndex()), packet));
         }, 500, 500, TimeUnit.MILLISECONDS);

@@ -22,7 +22,7 @@ public class Host {
     private String ip;
     private int port = -1;
     private String outputPath;
-    private DatagramSocket socket;
+    private DatagramSocket socketReceive;
     
     /**
      * Stores delivered messages from each sender. To create ack messages
@@ -122,8 +122,8 @@ public class Host {
      * Non defensive implementation, the socket must be setted first or will return null
      * @return The datagram socket of this host
      */
-    public DatagramSocket getSocket() {
-        return socket;
+    public DatagramSocket getSocketReceive() {
+        return socketReceive;
     }
 
     /**
@@ -165,9 +165,11 @@ public class Host {
     // }
 
     // SETTERS ================================================
-    public void setSocket(DatagramSocket s) {
-        if(socket != null) socket.close();
-        socket = s;
+    public void setSocketReceive(DatagramSocket s) {
+        if(socketReceive != null) {
+            socketReceive.close();
+        }
+        socketReceive = s;
     }
 
     public void setOutputPath(String outputPath) {
