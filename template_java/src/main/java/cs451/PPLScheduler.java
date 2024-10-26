@@ -8,6 +8,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -59,12 +61,12 @@ public class PPLScheduler {
             receiverId, 
             link
         );
-        
-        executor.execute(sender);
 
         executor.execute( () -> {
             while(true) link.deliver();
         });
+
+        executor.execute(sender);
     }
 
     protected void runPerfectReceiver() {
@@ -89,6 +91,25 @@ public class PPLScheduler {
             TimeUnit.MILLISECONDS
         );
 
+    }
+
+    public void sendPacket(int msgsToAdd, int currentMsgId, int receiverId, PerfectLink link) {
+        Host targetHost = hosts.get(receiverId-1);
+        byte thisHostId = selfHost.getId();
+        MsgPacket packet = new MsgPacket(thisHostId, targetHost.getId(), packetId.getAndIncrement());
+
+        for(int i = 0; i < msgsToAdd; i++) {
+            // To string because payload can be any datatype and it only has to be logged, 
+            // so parse to string to be able to cast to string when deserializing to log the message payload.
+            byte[] payload = Packet.serialize(Integer.toString(currentMsgId));
+
+            packet.addMessage(new Message(thisHostId, currentMsgId, payload));
+            //System.out.println("b " + currentMsgId);
+            logger.addLine("b " + currentMsgId);
+            ++currentMsgId;
+        }
+
+        link.send(targetHost, packet);
     }
 
     private class MessageSender implements Runnable {
@@ -134,14 +155,13 @@ public class PPLScheduler {
                     try {
                         Thread.sleep(300);
                     } catch (InterruptedException e) {
-                        System.err.println("EXPECTED EXCEPTION: Mensajes enviados: " + msgId);
-                        e.printStackTrace();
+                        System.err.println("EXPECTED EXCEPTION Mensajes enviados: " + msgId + " Tid: " + Thread.currentThread().getId());
+                        //e.printStackTrace();
                         Thread.currentThread().interrupt();
                     }
                 } 
                 sendPacket(msgsPerPacket, msgId);
                 msgId += 8;
-                
             }
             // Send remaining messages
             sendPacket(lastIters, msgId);
@@ -158,33 +178,31 @@ public class PPLScheduler {
         @Override
         public void run() {
             int indexOfTargetHost = 0;
-            for(BlockingQueue<Integer> queue : selfHost.getPendingAcks()) {
-                if(queue.isEmpty()) {
+            for(BlockingQueue<Integer> pendingAcksQueue : selfHost.getPendingAcks()) {
+                if(pendingAcksQueue.isEmpty()) {
                     ++indexOfTargetHost;
                     continue;
                 }
                 Host targetHost = hosts.get(indexOfTargetHost);
-                Queue<Integer> ackQueue = new LinkedList<>();
+                ++indexOfTargetHost;
+                Queue<Integer> ackQueue = new LinkedBlockingDeque<>();
 
                 //queue.drainTo(ackQueue, 32);
                 int count = 0;
-                while(!queue.isEmpty() && count < 256) {
+                while(!pendingAcksQueue.isEmpty() && count < 128) {
                     try {
-                        ackQueue.add(queue.poll(5000, TimeUnit.MILLISECONDS));
+                        ackQueue.add(pendingAcksQueue.poll(100000, TimeUnit.MILLISECONDS));
                     } catch (InterruptedException e) {
                         System.err.println("Sleeping thread got interrupted while waiting for an ack to be polled");
                         e.printStackTrace();
                         Thread.currentThread().interrupt();
                     }
+                    ++count;
                 }
                 //System.out.println("Sending acklist ACKbuild and send: " + ackList);
-
                 AcksPacket packet = new AcksPacket(selfHost.getId(), targetHost.getId(), packetId.getAndIncrement(), ackQueue);
-                // if(!selfHost.getAckPacketsQueue().offer(packet)) {
-                //     System.out.println("OFFER TO ACKSPACKETQUEUE FAILED");
-                // }
+                //System.out.println("Sending acks packet id: " + packet.getPacketId());
                 link.send(targetHost, packet);
-                ++indexOfTargetHost;
             }
         }
         

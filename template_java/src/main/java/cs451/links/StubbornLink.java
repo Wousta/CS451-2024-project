@@ -28,6 +28,7 @@ public class StubbornLink {
         sent = thisHost.getSent();
         executor.scheduleWithFixedDelay(() -> {
             System.out.println("\nTimerTask StubbornLinks con sent size: " + sent.size());
+            //System.out.println("sent: " + sent.keySet());
             //logger.addLine("Running timerTask StubbornLinks con sent size: " + sent.size());
             sent.forEach((id, packet) -> fll.send(hosts.get(packet.getTargetHostIndex()), packet));
         }, 500, 500, TimeUnit.MILLISECONDS);
@@ -59,6 +60,7 @@ public class StubbornLink {
         return fll.deliver();
     }
 
+    // Called by perfectLink to tell FairlossLink to increase buffer size
     public void fllIncreaseBufSize() {
         fll.adjustBufSize();
     }
