@@ -89,9 +89,13 @@ public class PerfectLink {
             pendingAcks.get(senderIndex).offer(packetId);
 
             for(Message m : packet.getMessages()) {
-                //System.out.println("d " + m.getHostId() + " " + (String)MsgPacket.deSerialize(m.getData()));
+                System.out.println("d " + m.getHostId() + " " + (String)MsgPacket.deSerialize(m.getData()));
                 logger.addLine("d " + m.getHostId() + " " + (String)Packet.deSerialize(m.getData()));
             }
+        }
+        else {
+            //System.out.println("already delivered packet");
+            selfHost.getPendingAcks().get(senderIndex).offer(packetId);
         }
 
     }
@@ -117,11 +121,13 @@ public class PerfectLink {
         //System.out.println("Received ack from receiver: " + packet.getPacketId());
         //System.out.println("Messages to remove: " + packet.getAcks());
 
+        boolean isNewAck = true;
         synchronized(sentLock) {
             for(int packetId : acksQueue) {
                 if(sent.remove(packetId) == null) {
                     //System.out.println("NULL REMOVE EN MAP SENDER");
-                    return;
+                    isNewAck = false;
+                    break;
                 } // TODO: Concurrent access to concurrentmap, potential issue
             }
         }
@@ -134,7 +140,9 @@ public class PerfectLink {
             acksQueue
         );
         ackOk.setAckStep(AcksPacket.ACK_SENDER);
-        ackOk.setTimeStamp(packetIdAtomic.getAndIncrement());
+        if(isNewAck) {
+            ackOk.setTimeStamp(packetIdAtomic.getAndIncrement());
+        }
 
         sendAckOk(hosts.get(ackOk.getTargetHostIndex()), ackOk);
     }
@@ -154,7 +162,8 @@ public class PerfectLink {
         synchronized(deliveredLock) {
             for(int packetId : acksQueue) {
                 if(delivered.remove(packetId) == null) {
-                    System.out.println("NULL REMOVE FROM MAP");
+                    //System.out.println("NULL REMOVE FROM MAP");
+                    break;
                 }
             }
         }
