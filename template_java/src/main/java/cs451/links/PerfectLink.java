@@ -1,7 +1,6 @@
 package cs451.links;
 
 import java.io.IOException;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.BlockingQueue;
@@ -29,7 +28,7 @@ public class PerfectLink {
     private final Object deliveredLock = new Object();
 
     public PerfectLink(Host selfHost, List<Host> hosts, Logger logger, ScheduledExecutorService executor, AtomicInteger packetId){
-        sl = new StubbornLink(selfHost, hosts, executor);
+        sl = new StubbornLink(selfHost, hosts, executor, packetId);
         pendingAcks = selfHost.getPendingAcks();
         this.selfHost = selfHost;
         this.hosts = hosts;
@@ -151,9 +150,16 @@ public class PerfectLink {
         //System.out.println("Received ack from sender: " + packet.getPacketId());
         //System.out.println("Messages to remove: " + packet.getAcks());
         int senderIndex = packet.getHostIndex();
+        int packetTimestamp = packet.getTimeStamp();
+        Host host = hosts.get(senderIndex);
+
+        // Ignore old acks
+        if(host.getLastTimeStamp() >= packetTimestamp) {
+            return;
+        }
 
         // Update last ack received from this host to ignore old messages
-        hosts.get(senderIndex).setLastTimeStamp(packet.getTimeStamp());
+        host.setLastTimeStamp(packetTimestamp);
 
         Queue<Integer> acksQueue = packet.getAcks();
         ConcurrentMap<Integer,Packet> delivered = selfHost.getDelivered().get(senderIndex);

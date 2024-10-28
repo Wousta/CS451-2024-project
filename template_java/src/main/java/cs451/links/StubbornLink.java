@@ -2,9 +2,11 @@ package cs451.links;
 
 import java.net.SocketException;
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import cs451.Host;
 import cs451.packets.Packet;
@@ -14,11 +16,11 @@ import cs451.packets.Packet;
  */
 public class StubbornLink {
 
-    private ConcurrentMap<Integer,Packet> sent;
+    private ConcurrentHashMap<Integer,Packet> sent;
     private FairLossLink fll;
 
 
-    public StubbornLink(Host thisHost, List<Host> hosts, ScheduledExecutorService executor){
+    public StubbornLink(Host thisHost, List<Host> hosts, ScheduledExecutorService executor, AtomicInteger packetId){
         try {
             fll = new FairLossLink(thisHost.getSocketReceive());
         } catch (SocketException e) {
@@ -30,7 +32,10 @@ public class StubbornLink {
             System.out.println("\nTimerTask StubbornLinks con sent size: " + sent.size());
             //System.out.println("sent: " + sent.keySet());
             //logger.addLine("Running timerTask StubbornLinks con sent size: " + sent.size());
-            sent.forEach((id, packet) -> fll.send(hosts.get(packet.getTargetHostIndex()), packet));
+            sent.forEach((id, packet) -> {
+                packet.setTimeStamp(packetId.getAndIncrement());
+                fll.send(hosts.get(packet.getTargetHostIndex()), packet);
+            });
         }, 500, 500, TimeUnit.MILLISECONDS);
     }
 

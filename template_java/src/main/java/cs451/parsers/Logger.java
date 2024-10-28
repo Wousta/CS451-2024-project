@@ -6,8 +6,11 @@ import java.io.IOException;
 import java.util.Queue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class Logger {
+    public static AtomicInteger sentAcks = new AtomicInteger();
+    public static AtomicInteger sentMsgs = new AtomicInteger();
     private static final BlockingQueue<String> outPutMsgs = new LinkedBlockingQueue<>();
     private BufferedWriter writer;
 
@@ -29,9 +32,11 @@ public class Logger {
         }
     }
 
-    public void flush() {
+    public void close() {
         try {
-            writer.flush();
+            //writer.write("sent ack packets: " + sentAcks.get());
+            //writer.write("\ndelivered msgs: " + sentMsgs.get());
+            writer.close();
         } catch (IOException e) {
             e.printStackTrace();
         }

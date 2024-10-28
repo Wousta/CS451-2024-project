@@ -29,7 +29,7 @@ public class Host {
      * get the keyset and put it in payload of ack message packet
      * Key of the map is the id of the message, position on the list is the host that sent the message
      */
-    private List<ConcurrentMap<Integer,Packet>> delivered;
+    private List<ConcurrentHashMap<Integer,Packet>> delivered;
 
     /**
      * List of indexes of the messages waiting for acks, it grows per new packet delivered
@@ -47,7 +47,7 @@ public class Host {
      * the queue of ack message indexes that specifies packets to be deleted.
      * The key is the PacketId.
      */
-    private ConcurrentMap<Integer,Packet> sent = new ConcurrentHashMap<>(64, 0.75f, Constants.N_THREADS);
+    private ConcurrentHashMap<Integer,Packet> sent = new ConcurrentHashMap<>(64, 0.75f, Constants.N_THREADS);
 
     public boolean populate(String idString, String ipString, String portString) {
         try {
@@ -130,7 +130,7 @@ public class Host {
      * Returns the queue of sent messages of this host.
      * @return the ConcurrentLinkedQueue for concurrent access with the sent messages
      */
-    public ConcurrentMap<Integer,Packet> getSent() {
+    public ConcurrentHashMap<Integer, Packet> getSent() {
         return sent;
     }
 
@@ -138,7 +138,7 @@ public class Host {
      * Returns the queue of delivered messages of this host.
      * @return the ConcurrentLinkedQueue for concurrent access with the delivered messages
      */
-    public List<ConcurrentMap<Integer,Packet>> getDelivered() {
+    public List<ConcurrentHashMap<Integer,Packet>> getDelivered() {
         return delivered;
     }
 

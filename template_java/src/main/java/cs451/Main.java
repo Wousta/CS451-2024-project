@@ -33,7 +33,7 @@ public class Main {
         //write/flush output file if necessary
         System.out.println("Writing output.");
         //logger.addLine("signal called");
-        logger.flush();
+        logger.close();
     }
 
     private static void initSignalHandlers() {

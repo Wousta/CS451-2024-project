@@ -9,6 +9,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import cs451.Host;
 import cs451.packets.MsgPacket;
 import cs451.packets.Packet;
+import cs451.parsers.Logger;
 
 /**
  * Can send and deliver Messages using UDP packets.

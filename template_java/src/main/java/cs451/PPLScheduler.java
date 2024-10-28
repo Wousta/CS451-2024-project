@@ -90,7 +90,6 @@ public class PPLScheduler {
             50, 
             TimeUnit.MILLISECONDS
         );
-
     }
 
     public void sendPacket(int msgsToAdd, int currentMsgId, int receiverId, PerfectLink link) {
@@ -150,7 +149,6 @@ public class PPLScheduler {
             int lastIters = msgsToSend % msgsPerPacket;
             //System.out.println("Iters = " + iters + " lastIters = " + lastIters);
             for(int i = 0; i < iters; i++) {
-                //System.out.println("sendpacket================================");
                 while(selfHost.getSent().size() > 128) {
                     try {
                         Thread.sleep(300);
@@ -199,6 +197,8 @@ public class PPLScheduler {
                     }
                     ++count;
                 }
+
+                
                 //System.out.println("Sending acklist ACKbuild and send: " + ackList);
                 AcksPacket packet = new AcksPacket(selfHost.getId(), targetHost.getId(), packetId.getAndIncrement(), ackQueue);
                 //System.out.println("Sending acks packet id: " + packet.getPacketId());
