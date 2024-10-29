@@ -28,7 +28,7 @@ public class PerfectLink {
     private final Object deliveredLock = new Object();
 
     public PerfectLink(Host selfHost, List<Host> hosts, Logger logger, ScheduledExecutorService executor, AtomicInteger packetId){
-        sl = new StubbornLink(selfHost, hosts, executor, packetId);
+        sl = new StubbornLink(selfHost, hosts, executor, packetId, sentLock);
         pendingAcks = selfHost.getPendingAcks();
         this.selfHost = selfHost;
         this.hosts = hosts;

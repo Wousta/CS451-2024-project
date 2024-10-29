@@ -18,9 +18,9 @@ public class StubbornLink {
 
     private ConcurrentHashMap<Integer,Packet> sent;
     private FairLossLink fll;
+    private final Object sentLock;
 
-
-    public StubbornLink(Host thisHost, List<Host> hosts, ScheduledExecutorService executor, AtomicInteger packetId){
+    public StubbornLink(Host thisHost, List<Host> hosts, ScheduledExecutorService executor, AtomicInteger packetId, Object sentLock){
         try {
             fll = new FairLossLink(thisHost.getSocketReceive());
         } catch (SocketException e) {
@@ -28,14 +28,17 @@ public class StubbornLink {
         }
 
         sent = thisHost.getSent();
+        this.sentLock = sentLock;
         executor.scheduleWithFixedDelay(() -> {
             System.out.println("\nTimerTask StubbornLinks con sent size: " + sent.size());
             //System.out.println("sent: " + sent.keySet());
             //logger.addLine("Running timerTask StubbornLinks con sent size: " + sent.size());
-            sent.forEach((id, packet) -> {
-                packet.setTimeStamp(packetId.getAndIncrement());
-                fll.send(hosts.get(packet.getTargetHostIndex()), packet);
-            });
+            synchronized(this.sentLock) {
+                sent.forEach((id, packet) -> {
+                    packet.setTimeStamp(packetId.getAndIncrement());
+                    fll.send(hosts.get(packet.getTargetHostIndex()), packet);
+                });
+            }
         }, 500, 500, TimeUnit.MILLISECONDS);
     }
 
