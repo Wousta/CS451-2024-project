@@ -37,12 +37,6 @@ public class Host {
     private List<BlockingQueue<Integer>> pendingAcks;
 
     /**
-     * Queues of the ack packets ready to be sent. It grows each time the pendingAcks queue
-     * of a host is dumped into an AcksPacket, when ack ok is received from sender that AcksPacket is removed.
-     */
-    //private BlockingQueue<AcksPacket> ackPacketsQueue = new LinkedBlockingQueue<>(); // TODO: compare performance with hashmap
-
-    /**
      * Stores the sent packets. It is a hashmap for fast lookup of packets when iterating
      * the queue of ack message indexes that specifies packets to be deleted.
      * The key is the PacketId.

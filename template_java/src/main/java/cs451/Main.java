@@ -14,7 +14,7 @@ import cs451.parsers.Parser;
 
 public class Main {
     private static Logger logger;
-    private static ScheduledExecutorService executor;
+    private static ScheduledExecutorService executor = Executors.newScheduledThreadPool(4);
 
     private static void handleSignal() {
         //immediately stop network packet processing
@@ -32,7 +32,6 @@ public class Main {
 
         //write/flush output file if necessary
         System.out.println("Writing output.");
-        //logger.addLine("signal called");
         logger.close();
     }
 
@@ -48,18 +47,16 @@ public class Main {
     public static void main(String[] args) throws InterruptedException, IOException {
         Parser parser = new Parser(args);
         parser.parse();
-    
-        executor = Executors.newScheduledThreadPool(4);
+        
         String config = parser.config();
         Host thisHost = parser.hosts().get(parser.myIndex());
         logger = new Logger(parser.output(), thisHost);
-        PPLScheduler scheduler;
-        int[] input;
 
         System.out.println("output: " + parser.output());
-
         initSignalHandlers();
 
+        PPLScheduler scheduler;
+        int[] input;
         try (BufferedReader reader = new BufferedReader(new FileReader(config))) {
             String[] parts = reader.readLine().trim().split("\\s+");
             input = Arrays.stream(parts).mapToInt(Integer::parseInt).toArray();
