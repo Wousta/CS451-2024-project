@@ -107,7 +107,7 @@ public class PPLScheduler {
             logger.addLine("b " + currentMsgId);
             ++currentMsgId;
         }
-
+        //logger.addLine("MESSAGES IN PACKET = " + packet.getMessages().size());
         link.send(targetHost, packet);
     }
 
@@ -162,7 +162,9 @@ public class PPLScheduler {
                 msgId += 8;
             }
             // Send remaining messages
-            sendPacket(lastIters, msgId);
+            if(lastIters > 0) {
+                sendPacket(lastIters, msgId);
+            }
         }
     }
 
@@ -183,7 +185,7 @@ public class PPLScheduler {
                 }
                 Host targetHost = hosts.get(indexOfTargetHost);
                 ++indexOfTargetHost;
-                Queue<Integer> ackQueue = new LinkedBlockingDeque<>();
+                BlockingQueue<Integer> ackQueue = new LinkedBlockingDeque<>();
 
                 //queue.drainTo(ackQueue, 32);
                 int count = 0;
@@ -197,10 +199,14 @@ public class PPLScheduler {
                     }
                     ++count;
                 }
-
                 
                 //System.out.println("Sending acklist ACKbuild and send: " + ackList);
-                AcksPacket packet = new AcksPacket(selfHost.getId(), targetHost.getId(), packetId.getAndIncrement(), ackQueue);
+                AcksPacket packet = new AcksPacket(
+                    selfHost.getId(), 
+                    targetHost.getId(), 
+                    packetId.getAndIncrement(), 
+                    ackQueue
+                );
                 //System.out.println("Sending acks packet id: " + packet.getPacketId());
                 link.send(targetHost, packet);
             }

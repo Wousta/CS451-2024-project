@@ -58,9 +58,7 @@ public class PerfectLink {
             }
 
             if(obj instanceof AcksPacket) {
-                synchronized (deliveredLock) {
-                    handleAcksPacket(data);
-                }
+                handleAcksPacket(data);
             }
 
         } catch (Exception e) {
@@ -68,8 +66,6 @@ public class PerfectLink {
             sl.fllIncreaseBufSize();
         } 
     }
-
-
 
     private void handleMsgPacket(byte[] data) throws ClassNotFoundException, IOException {
         MsgPacket packet = (MsgPacket)Packet.deSerialize(data);
@@ -83,20 +79,17 @@ public class PerfectLink {
         if(!senderDelivered.containsKey(packetId) && senderTimeStamp > lastTimeStamp) {
             //System.out.println("Recibido paquete: " + packet.toString());
             senderDelivered.put(packetId, packet);
-
+            //logger.addLine("messages in packet = " + packet.getMessages().size());
             // Add id of packet to pending packets to be acked, we only send Ids for acking.
-            pendingAcks.get(senderIndex).offer(packetId);
+            if(!pendingAcks.get(senderIndex).offer(packetId)) {
+                System.out.println("Offer of new package failed");
+            }
 
             for(Message m : packet.getMessages()) {
-                System.out.println("d " + m.getHostId() + " " + (String)MsgPacket.deSerialize(m.getData()));
+                //System.out.println("d " + m.getHostId() + " " + (String)MsgPacket.deSerialize(m.getData()));
                 logger.addLine("d " + m.getHostId() + " " + (String)Packet.deSerialize(m.getData()));
             }
         }
-        else {
-            //System.out.println("already delivered packet");
-            selfHost.getPendingAcks().get(senderIndex).offer(packetId);
-        }
-
     }
 
     private void handleAcksPacket(byte[] data) throws ClassNotFoundException, IOException {
@@ -114,20 +107,18 @@ public class PerfectLink {
     }
 
     private void handleAckFromReceiver(AcksPacket packet) {
-        Queue<Integer> acksQueue = packet.getAcks();
+        BlockingQueue<Integer> acksQueue = packet.getAcks();
         ConcurrentMap<Integer,Packet> sent = selfHost.getSent();
 
         //System.out.println("Received ack from receiver: " + packet.getPacketId());
         //System.out.println("Messages to remove: " + packet.getAcks());
 
         boolean isNewAck = true;
-        synchronized(sentLock) {
-            for(int packetId : acksQueue) {
-                if(sent.remove(packetId) == null) {
-                    //System.out.println("NULL REMOVE EN MAP SENDER");
-                    isNewAck = false;
-                    break;
-                } // TODO: Concurrent access to concurrentmap, potential issue
+        for(int packetId : acksQueue) {
+            if(sent.remove(packetId) == null) {
+                //System.out.println("NULL REMOVE EN MAP SENDER");
+                isNewAck = false;
+                break;
             }
         }
         
@@ -135,12 +126,12 @@ public class PerfectLink {
         AcksPacket ackOk = new AcksPacket(
             selfHost.getId(),
             packet.getHostId(), 
-            packet.getPacketId(), 
-            acksQueue
+            packet.getPacketId()
         );
         ackOk.setAckStep(AcksPacket.ACK_SENDER);
         if(isNewAck) {
             ackOk.setTimeStamp(packetIdAtomic.getAndIncrement());
+            ackOk.setAcks(acksQueue);
         }
 
         sendAckOk(hosts.get(ackOk.getTargetHostIndex()), ackOk);
@@ -152,29 +143,22 @@ public class PerfectLink {
         int senderIndex = packet.getHostIndex();
         int packetTimestamp = packet.getTimeStamp();
         Host host = hosts.get(senderIndex);
-
-        // Ignore old acks
-        if(host.getLastTimeStamp() >= packetTimestamp) {
-            return;
-        }
-
-        // Update last ack received from this host to ignore old messages
-        host.setLastTimeStamp(packetTimestamp);
-
         Queue<Integer> acksQueue = packet.getAcks();
         ConcurrentMap<Integer,Packet> delivered = selfHost.getDelivered().get(senderIndex);
 
-        // Delete delivered messages of this sender, they will not be received anymore
-        synchronized(deliveredLock) {
-            for(int packetId : acksQueue) {
-                if(delivered.remove(packetId) == null) {
-                    //System.out.println("NULL REMOVE FROM MAP");
-                    break;
-                }
+        for(int packetId : acksQueue) {
+            if(delivered.remove(packetId) == null) {
+                System.out.println("NULL REMOVE FROM MAPPP");
+                //break;
             }
         }
 
-        // Remove processed ack from sent messages to not resend it
+        // Only update timestamp if ack is newer
+        if(host.getLastTimeStamp() < packetTimestamp) {
+            host.setLastTimeStamp(packetTimestamp);
+            return;
+        }
+
         selfHost.getSent().remove(packet.getPacketId());
     }
 

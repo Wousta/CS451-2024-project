@@ -1,6 +1,9 @@
 package cs451.packets;
 
 import java.util.Queue;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingDeque;
+import java.util.concurrent.LinkedBlockingQueue;
 
 public class AcksPacket extends Packet {
     /**
@@ -15,9 +18,13 @@ public class AcksPacket extends Packet {
 
     // Initialized to ACK_RECEIVER since the sender of first ack message in the exchange is the receiver
     private boolean ackStep = ACK_RECEIVER;
-    private Queue<Integer> acks;
+    private BlockingQueue<Integer> acks = new LinkedBlockingQueue<>();
 
-    public AcksPacket(byte hostId, byte destinationHostId, int packetId, Queue<Integer> acks) {
+    public AcksPacket(byte hostId, byte destinationHostId, int packetId) {
+        super(hostId, destinationHostId, packetId);
+    }
+
+    public AcksPacket(byte hostId, byte destinationHostId, int packetId, BlockingQueue<Integer> acks) {
         super(hostId, destinationHostId, packetId);
         this.acks = acks;
     }
@@ -26,8 +33,12 @@ public class AcksPacket extends Packet {
         return ackStep;
     }
 
-    public Queue<Integer> getAcks() {
+    public BlockingQueue<Integer> getAcks() {
         return acks;
+    }
+
+    public void setAcks(BlockingQueue<Integer> acks) {
+        this.acks = acks;
     }
 
     public void setAckStep(boolean ackStep) {
@@ -65,6 +76,6 @@ public class AcksPacket extends Packet {
 
     @Override
     public String toString() {
-        return "Id " + packetId + " hostId " + hostId + " ["  + "]";
+        return "IdAck " + packetId + " hostId " + hostId + " ["  + "]";
     }
 }
