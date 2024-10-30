@@ -4,11 +4,8 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
 import java.net.UnknownHostException;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.Queue;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -86,7 +83,7 @@ public class PPLScheduler {
 
         executor.scheduleAtFixedRate(
             ackBuildAndSend, 
-            100, 
+            50, 
             50, 
             TimeUnit.MILLISECONDS
         );
@@ -149,9 +146,9 @@ public class PPLScheduler {
             int lastIters = msgsToSend % msgsPerPacket;
             //System.out.println("Iters = " + iters + " lastIters = " + lastIters);
             for(int i = 0; i < iters; i++) {
-                while(selfHost.getSent().size() > 128) {
+                while(selfHost.getSent().size() > 132) {
                     try {
-                        Thread.sleep(300);
+                        Thread.sleep(100);
                     } catch (InterruptedException e) {
                         System.err.println("EXPECTED EXCEPTION Mensajes enviados: " + msgId + " Tid: " + Thread.currentThread().getId());
                         //e.printStackTrace();
@@ -189,7 +186,7 @@ public class PPLScheduler {
 
                 //queue.drainTo(ackQueue, 32);
                 int count = 0;
-                while(!pendingAcksQueue.isEmpty() && count < 128) {
+                while(!pendingAcksQueue.isEmpty() && count < 256) {
                     try {
                         ackQueue.add(pendingAcksQueue.poll(100000, TimeUnit.MILLISECONDS));
                     } catch (InterruptedException e) {

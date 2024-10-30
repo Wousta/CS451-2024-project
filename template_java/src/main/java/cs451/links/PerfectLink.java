@@ -24,11 +24,8 @@ public class PerfectLink {
     private List<Host> hosts;
     private List<BlockingQueue<Integer>> pendingAcks;
 
-    private final Object sentLock = new Object(); // Lock object for sent map
-    private final Object deliveredLock = new Object();
-
     public PerfectLink(Host selfHost, List<Host> hosts, Logger logger, ScheduledExecutorService executor, AtomicInteger packetId){
-        sl = new StubbornLink(selfHost, hosts, executor, packetId, sentLock);
+        sl = new StubbornLink(selfHost, hosts, executor, packetId);
         pendingAcks = selfHost.getPendingAcks();
         this.selfHost = selfHost;
         this.hosts = hosts;
@@ -128,6 +125,7 @@ public class PerfectLink {
             packet.getHostId(), 
             packet.getPacketId()
         );
+
         ackOk.setAckStep(AcksPacket.ACK_SENDER);
         if(isNewAck) {
             ackOk.setTimeStamp(packetIdAtomic.getAndIncrement());
@@ -147,10 +145,7 @@ public class PerfectLink {
         ConcurrentMap<Integer,Packet> delivered = selfHost.getDelivered().get(senderIndex);
 
         for(int packetId : acksQueue) {
-            if(delivered.remove(packetId) == null) {
-                System.out.println("NULL REMOVE FROM MAPPP");
-                //break;
-            }
+            delivered.remove(packetId);
         }
 
         // Only update timestamp if ack is newer

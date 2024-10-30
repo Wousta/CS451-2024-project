@@ -2,7 +2,7 @@ package cs451.links;
 
 import java.net.SocketException;
 import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -15,11 +15,10 @@ import cs451.packets.Packet;
  */
 public class StubbornLink {
 
-    private ConcurrentHashMap<Integer,Packet> sent;
+    private ConcurrentMap<Integer,Packet> sent;
     private FairLossLink fll;
-    private final Object sentLock;
 
-    public StubbornLink(Host thisHost, List<Host> hosts, ScheduledExecutorService executor, AtomicInteger packetId, Object sentLock){
+    public StubbornLink(Host thisHost, List<Host> hosts, ScheduledExecutorService executor, AtomicInteger packetId){
         try {
             fll = new FairLossLink(thisHost.getSocketReceive());
         } catch (SocketException e) {
@@ -27,27 +26,12 @@ public class StubbornLink {
         }
 
         sent = thisHost.getSent();
-        this.sentLock = sentLock;
         executor.scheduleWithFixedDelay(() -> {
-            System.out.println("\nTimerTask StubbornLinks con sent size: " + sent.size());
-            int deliveredCount = 0;
-            for(ConcurrentHashMap m : thisHost.getDelivered()) {
-                deliveredCount += m.size();
-            }
-            System.out.println("Tamaño de delivered = " + deliveredCount);
-            //System.out.println("sent: " + sent.keySet());
-            //logger.addLine("Running timerTask StubbornLinks con sent size: " + sent.size());
-            // synchronized(this.sentLock) {
-            //     sent.forEach((id, packet) -> {
-            //         packet.setTimeStamp(packetId.getAndIncrement());
-            //         fll.send(hosts.get(packet.getTargetHostIndex()), packet);
-            //     });
-            // }
             sent.forEach((id, packet) -> {
                 packet.setTimeStamp(packetId.getAndIncrement());
                 fll.send(hosts.get(packet.getTargetHostIndex()), packet);
             });
-        }, 300, 300, TimeUnit.MILLISECONDS);
+        }, 200, 200, TimeUnit.MILLISECONDS);
     }
 
     public void send(Host h, Packet p) {

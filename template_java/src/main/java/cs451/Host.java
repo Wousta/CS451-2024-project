@@ -130,7 +130,7 @@ public class Host {
      * Returns the queue of sent messages of this host.
      * @return the ConcurrentLinkedQueue for concurrent access with the sent messages
      */
-    public ConcurrentHashMap<Integer, Packet> getSent() {
+    public ConcurrentMap<Integer, Packet> getSent() {
         return sent;
     }
 

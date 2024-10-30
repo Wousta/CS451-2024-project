@@ -49,10 +49,10 @@ public class Main {
         Parser parser = new Parser(args);
         parser.parse();
     
-        logger = new Logger(parser.output());
         executor = Executors.newScheduledThreadPool(4);
         String config = parser.config();
         Host thisHost = parser.hosts().get(parser.myIndex());
+        logger = new Logger(parser.output(), thisHost);
         PPLScheduler scheduler;
         int[] input;
 
