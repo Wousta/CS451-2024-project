@@ -10,7 +10,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.LinkedBlockingQueue;
 
-import cs451.packets.AcksPacket;
 import cs451.packets.Packet;
 
 public class Host {
