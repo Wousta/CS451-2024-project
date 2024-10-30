@@ -74,7 +74,6 @@ public class PerfectLink {
 
         // Test if packet already delivered and id is not older than last ack
         if(!senderDelivered.containsKey(packetId) && senderTimeStamp > lastTimeStamp) {
-            //System.out.println("Recibido paquete: " + packet.toString());
             senderDelivered.put(packetId, packet);
             //logger.addLine("messages in packet = " + packet.getMessages().size());
             // Add id of packet to pending packets to be acked, we only send Ids for acking.

@@ -6,8 +6,10 @@ import java.io.IOException;
 import java.util.Queue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
 
 import cs451.Host;
+import cs451.packets.Packet;
 
 public class Logger {
     private static final BlockingQueue<String> outPutMsgs = new LinkedBlockingQueue<>();
@@ -34,11 +36,11 @@ public class Logger {
 
     public void close() {
         try {
-            // int deliveredCount = 0;
-            // for(ConcurrentHashMap<Integer, Packet> m : host.getDelivered()) {
-            //     deliveredCount += m.size();
-            // }
-            // writer.write("delivered size = " + deliveredCount);
+            int deliveredCount = 0;
+            for(ConcurrentHashMap<Integer, Packet> m : host.getDelivered()) {
+                deliveredCount += m.size();
+            }
+            writer.write("delivered size = " + deliveredCount);
             writer.close();
         } catch (IOException e) {
             e.printStackTrace();

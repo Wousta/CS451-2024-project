@@ -6,12 +6,8 @@ import java.io.Serializable;
  * Up to 8 can be stored in a single packet
  */
 public class Message implements Serializable {
-
-    /**
-     * TODO: use actual length after testing
-     * Maximum size of a message in UDP packet is 64KiB
-     */
-    public static final int MSG_MAX_SIZE = 7200;
+    // TODO: enforce message maximum size
+    public static final int MSG_MAX_SIZE = 1000; 
 
     /**
      * The message content
