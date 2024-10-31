@@ -124,7 +124,7 @@ public class PerfectLink {
             ackOk.setTimeStamp(packetIdAtomic.getAndIncrement());
             ackOk.setAcks(acksQueue);
         }
-        //ackOk.setAcks(acksQueue);
+
         sendAckOk(hosts.get(ackOk.getTargetHostIndex()), ackOk);
     }
 
@@ -135,7 +135,7 @@ public class PerfectLink {
         Queue<Integer> acksQueue = packet.getAcks();
         ConcurrentMap<Integer,Packet> delivered = selfHost.getDelivered().get(senderIndex);
 
-        // TODO: figure out how to detect that the queue has been processed without causing null values
+        // TODO: figure out how to detect that the queue has been processed without causing null values, while being fast
         for(int packetId : acksQueue) {
             delivered.remove(packetId);
         }
