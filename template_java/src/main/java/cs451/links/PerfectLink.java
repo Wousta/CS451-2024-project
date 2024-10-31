@@ -135,7 +135,7 @@ public class PerfectLink {
         Queue<Integer> acksQueue = packet.getAcks();
         ConcurrentMap<Integer,Packet> delivered = selfHost.getDelivered().get(senderIndex);
 
-        // TODO: figure out how to detect
+        // TODO: figure out how to detect that the queue has been processed without causing null values
         for(int packetId : acksQueue) {
             delivered.remove(packetId);
         }
