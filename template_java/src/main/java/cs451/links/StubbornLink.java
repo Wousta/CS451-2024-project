@@ -1,73 +1,70 @@
 package cs451.links;
 
-import cs451.Host;
-import cs451.Logger;
-import cs451.Message;
-
-import java.util.Timer;
+import java.net.SocketException;
 import java.util.List;
-import java.util.Queue;
-import java.util.TimerTask;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import cs451.Host;
+import cs451.packets.Packet;
 
 /**
  * Use it inside PerfectLink to guarantee Stubborn delivery.
  */
 public class StubbornLink {
-
-    private Queue<Message> sent;
-    private List<Host> hosts; 
-    private Timer timer;  
-    private SLTimerTask slTask; 
+    
+    private ConcurrentMap<Integer,Packet> sent;
     private FairLossLink fll;
-    private Logger logger;
 
-    public StubbornLink(Host thisHost, List<Host> hosts, Logger logger){
-        slTask = new SLTimerTask(thisHost, logger);
-        timer = new Timer(); // Add parameter true to run as Daemon: https://www.digitalocean.com/community/tutorials/java-timer-timertask-example
-        timer.scheduleAtFixedRate(slTask, 100, 2000);
-        fll = new FairLossLink(thisHost.getSocket());
+    public StubbornLink(Host thisHost, List<Host> hosts, ScheduledExecutorService executor, AtomicInteger packetId){
+        try {
+            fll = new FairLossLink(thisHost.getSocketReceive());
+        } catch (SocketException e) {
+            e.printStackTrace();
+        }
+
         sent = thisHost.getSent();
-        this.hosts = hosts;
-        this.logger = logger;
+
+        // Resend operation of stubbornLink that guarantees eventual delivery between correct processes.
+        executor.scheduleWithFixedDelay(() -> {
+            sent.forEach((id, packet) -> {
+                packet.setTimeStamp(packetId.getAndIncrement());
+                fll.send(hosts.get(packet.getTargetHostIndex()), packet);
+            });
+        }, 200, 200, TimeUnit.MILLISECONDS);
     }
 
-    public void send(Host h, Message m) {
-        //System.out.println("sending message: " + m.getMsgId());
-        slTask.setDestinationHost(h);
-        fll.send(h, m);
-        sent.offer(m);
-    }
-
-    public Message deliver() {
-        return fll.deliver();
-    }
-
-    public Queue<Message> getSent() {
-        return sent;
+    public void send(Host h, Packet p) {
+        fll.send(h, p);
+        try {
+            sent.put(p.getPacketId(), p); // Gets blocked here
+        } catch(Exception e) {
+            e.printStackTrace();
+        }
     }
 
     /**
-     * Timer service of StubbornLinks, it resends all messages
-     * in intervals using TimerTask java library class spec.
+     * When sending ack ok the packet should not be put in sent messages for resending.
+     * This method is equivalent to send() except it does not store the message in sent map.
+     * The reason is that if this ack ok does not arrive, the ack message will be resent from the receiver,
+     * But if this ack ok is kept in sent messages, it would need to be cleaned and therefore needs another
+     * ack message for the ack ok message, starting an infinite loop of acks that need to be acked.
+     * @param h the target host
+     * @param p the ack ok packet to be sent
      */
-    private class SLTimerTask extends TimerTask{
-
-        private Host destinationHost;
-
-        public SLTimerTask(Host h, Logger logger) {
-            destinationHost = h;
-        }
-
-        @Override
-        public void run() {
-            //System.out.println("Running timerTask StubbornLinks con sent size: " + sent.size());
-            //logger.addLine("Running timerTask StubbornLinks con sent size: " + sent.size());
-            sent.forEach( m -> fll.send(destinationHost, m));
-        }
-
-        public void setDestinationHost(Host destinationHost) {
-            this.destinationHost = destinationHost;
-        }
-    
+    public void sendAckOk(Host h, Packet p) {
+        fll.send(h, p); 
     }
+
+    public byte[] deliver() {
+        return fll.deliver();
+    }
+
+    // Called by perfectLink to tell FairlossLink to increase buffer size
+    public void fllIncreaseBufSize() {
+        fll.adjustBufSize();
+    }
+
 }

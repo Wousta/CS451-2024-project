@@ -18,4 +18,9 @@ public class Constants {
     // indexes for config
     public static final int CONFIG_VALUE = 6;
 
+    // A message with id -1 is an ack message
+    public static final int ID_ACK_MSG = -1;
+
+    public static final int N_THREADS = 4;
+
 }

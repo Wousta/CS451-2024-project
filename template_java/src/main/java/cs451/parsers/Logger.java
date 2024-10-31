@@ -1,19 +1,23 @@
-package cs451;
+package cs451.parsers;
 
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.OutputStreamWriter;
-import java.io.PrintWriter;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.Queue;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
+
+import cs451.Host;
+import cs451.packets.Packet;
 
 public class Logger {
     private static final BlockingQueue<String> outPutMsgs = new LinkedBlockingQueue<>();
     private BufferedWriter writer;
+    private Host host;
 
-    public Logger(String path){
+    public Logger(String path, Host host){
+        this.host = host;
         try {
             writer = new BufferedWriter(new FileWriter(path), 32768);
         } catch (IOException e) {
@@ -22,7 +26,6 @@ public class Logger {
         }
     }
 
-    // TODO: concurrent writing and such
     public void addLine(String msg) {
         try {
             writer.write(msg + "\n");
@@ -31,9 +34,15 @@ public class Logger {
         }
     }
 
-    public void flush() {
+    public void close() {
         try {
-            writer.flush();
+            int deliveredCount = 0;
+            for(ConcurrentHashMap<Integer, Packet> m : host.getDelivered()) {
+                deliveredCount += m.size();
+            }
+            writer.write("delivered size = " + deliveredCount);
+            writer.write("\nsent size = " + host.getSent().size());
+            writer.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
