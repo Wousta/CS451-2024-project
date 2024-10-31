@@ -24,20 +24,18 @@ public class Host {
     private DatagramSocket socketReceive;
     
     /**
-     * Stores delivered messages from each sender. To create ack messages
-     * get the keyset and put it in payload of ack message packet
-     * Key of the map is the id of the message, position on the list is the host that sent the message
+     * Stores delivered messages from each sender host.
+     * Key of the map is the id of the message.
      */
     private List<ConcurrentHashMap<Integer,Packet>> delivered;
 
     /**
-     * List of indexes of the messages waiting for acks, it grows per new packet delivered
+     * List of indexes of the messages waiting for acks, it grows per new packet delivered.
      */
     private List<BlockingQueue<Integer>> pendingAcks;
 
     /**
-     * Stores the sent packets. It is a hashmap for fast lookup of packets when iterating
-     * the queue of ack message indexes that specifies packets to be deleted.
+     * Stores the sent packets.
      * The key is the PacketId.
      */
     private ConcurrentHashMap<Integer,Packet> sent = new ConcurrentHashMap<>(64, 0.75f, Constants.N_THREADS);
@@ -71,6 +69,11 @@ public class Host {
         return true;
     }
 
+    /**
+     * Since Hosts are created beforehand, the data structures have to be initialized in the scheduler.
+     * It initializes the delivered and pendingAcks lists.
+     * @param nHosts the number of hosts in the system.
+     */
     public void initLists(int nHosts) {
         delivered = new ArrayList<>(nHosts);
         pendingAcks = new ArrayList<>(nHosts);
@@ -120,7 +123,7 @@ public class Host {
     }
 
     /**
-     * Returns the queue of sent messages of this host.
+     * Returns the map of sent packets of this host. Key is the id of the host.
      * @return the ConcurrentLinkedQueue for concurrent access with the sent messages
      */
     public ConcurrentMap<Integer, Packet> getSent() {
@@ -128,7 +131,7 @@ public class Host {
     }
 
     /**
-     * Returns the queue of delivered messages of this host.
+     * Returns the List that contains a map of delivered packets for each host.
      * @return the ConcurrentLinkedQueue for concurrent access with the delivered messages
      */
     public List<ConcurrentHashMap<Integer,Packet>> getDelivered() {
@@ -149,13 +152,13 @@ public class Host {
         return lastTimeStamp;
     }
 
+    /**
+     * List that contains a queue for each host. The queue contains the Ids of the packets pending for an ack.
+     * @return A list containing N queues of integers, where N is the number of hosts.
+     */
     public List<BlockingQueue<Integer>> getPendingAcks() {
         return pendingAcks;
     }
-
-    // public BlockingQueue<AcksPacket> getAckPacketsQueue() {
-    //     return ackPacketsQueue;
-    // }
 
     // SETTERS ================================================
     public void setSocketReceive(DatagramSocket s) {

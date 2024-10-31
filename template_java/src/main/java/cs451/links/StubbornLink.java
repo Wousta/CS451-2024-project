@@ -14,7 +14,7 @@ import cs451.packets.Packet;
  * Use it inside PerfectLink to guarantee Stubborn delivery.
  */
 public class StubbornLink {
-
+    
     private ConcurrentMap<Integer,Packet> sent;
     private FairLossLink fll;
 
@@ -26,6 +26,8 @@ public class StubbornLink {
         }
 
         sent = thisHost.getSent();
+
+        // Resend operation of stubbornLink that guarantees eventual delivery between correct processes.
         executor.scheduleWithFixedDelay(() -> {
             sent.forEach((id, packet) -> {
                 packet.setTimeStamp(packetId.getAndIncrement());
@@ -48,7 +50,7 @@ public class StubbornLink {
      * This method is equivalent to send() except it does not store the message in sent map.
      * The reason is that if this ack ok does not arrive, the ack message will be resent from the receiver,
      * But if this ack ok is kept in sent messages, it would need to be cleaned and therefore needs another
-     * ack message for the ack ok message, starting an infinite loop of acks.
+     * ack message for the ack ok message, starting an infinite loop of acks that need to be acked.
      * @param h the target host
      * @param p the ack ok packet to be sent
      */

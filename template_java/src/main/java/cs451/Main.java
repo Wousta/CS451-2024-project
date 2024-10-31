@@ -15,6 +15,9 @@ import cs451.parsers.Parser;
 public class Main {
     private static Logger logger;
     private static ScheduledExecutorService executor = Executors.newScheduledThreadPool(4);
+    private static final int FIFO = 1;
+    private static final int PERFECT_LINK = 2;
+    private static final int LATTICE = 3;
 
     private static void handleSignal() {
         //immediately stop network packet processing
@@ -52,11 +55,10 @@ public class Main {
         Host thisHost = parser.hosts().get(parser.myIndex());
         logger = new Logger(parser.output(), thisHost);
 
-        System.out.println("output: " + parser.output());
         initSignalHandlers();
 
         PPLScheduler scheduler;
-        int[] input;
+        int[] input; // Argumens of the configuration
         try (BufferedReader reader = new BufferedReader(new FileReader(config))) {
             String[] parts = reader.readLine().trim().split("\\s+");
             input = Arrays.stream(parts).mapToInt(Integer::parseInt).toArray();
@@ -68,8 +70,38 @@ public class Main {
             return;
         }
 
-        /////////////////////////////////////////////////////////////////////////////////
+        // Summary of hosts, configuration, output files
+        printSummary(parser);
+
+        switch (input.length) {
+            case FIFO:
+                // Run fifo
+                break;
+            case PERFECT_LINK:
+                if(input[1] == thisHost.getId()) scheduler.runPerfectReceiver();
+                else scheduler.runPerfectSender(input);
+                break;
+            case LATTICE:
+                // Run Lattice
+                break;
+            default:
+                System.err.println("Configuration mode not recognized");
+                break;
+        }
+
+        while (true) {
+            System.out.println("Go sleep");
+            // Sleep for 1 hour
+            Thread.sleep(60L * 60 * 1000);
+        }
+
+    }
+
+    public static void printSummary(Parser parser) {
+        String config = parser.config();
+        Host thisHost = parser.hosts().get(parser.myIndex());
         long pid = ProcessHandle.current().pid();
+
         System.out.println("conf: " + config + " output: " + parser.output() + " n hosts: " + parser.hosts().size() + "\n"
                         + "My PID: " + pid + "\n"
                         + "From a new terminal type `kill -SIGINT " + pid + "` or `kill -SIGTERM " + pid + "` to stop processing packets\n"
@@ -93,29 +125,5 @@ public class Main {
                         + "===============\n"
                         + parser.config() + "\n"
                         + "Doing some initialization\n");
-        /////////////////////////////////////////////////////////////////////////////////
-
-        switch (input.length) {
-            case 1:
-                // Run fifo
-                break;
-            case 2:
-                if(input[1] == thisHost.getId()) scheduler.runPerfectReceiver();
-                else scheduler.runPerfectSender(input);
-                break;
-            case 3:
-                // Run Lattice
-                break;
-            default:
-                System.out.println("Configuration mode not recognized");
-                break;
-        }
-
-        while (true) {
-            System.out.println("Go sleep");
-            // Sleep for 1 hour
-            Thread.sleep(60L * 60 * 1000);
-        }
-
     }
 }

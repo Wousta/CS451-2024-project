@@ -44,9 +44,6 @@ public class PerfectLink {
     public void deliver() {
         byte[] data = sl.deliver();
 
-        // Data buffer received was too big, buffe size has been incremented for next try
-        //if(data == null) return;
-
         try {
             Object obj = Packet.deSerialize(data);
             // Acks packets only contain one message and are lighter when sending
@@ -60,6 +57,7 @@ public class PerfectLink {
 
         } catch (Exception e) {
             //System.out.println("Size of buffer was too small ===========================");
+            // Data buffer received was too big, buffe size has been incremented for next try
             sl.fllIncreaseBufSize();
         } 
     }
@@ -78,7 +76,7 @@ public class PerfectLink {
             //logger.addLine("messages in packet = " + packet.getMessages().size());
             // Add id of packet to pending packets to be acked, we only send Ids for acking.
             if(!pendingAcks.get(senderIndex).offer(packetId)) {
-                System.out.println("Offer of new package failed");
+                System.err.println("Offer of new package failed");
             }
 
             for(Message m : packet.getMessages()) {
@@ -92,7 +90,6 @@ public class PerfectLink {
         AcksPacket packet = (AcksPacket)Packet.deSerialize(data);
 
         if(packet.getAckStep() == AcksPacket.ACK_RECEIVER) {
-            //System.out.println("Received ack from receiver");
             handleAckFromReceiver(packet);
         }
 
@@ -105,9 +102,6 @@ public class PerfectLink {
     private void handleAckFromReceiver(AcksPacket packet) {
         BlockingQueue<Integer> acksQueue = packet.getAcks();
         ConcurrentMap<Integer,Packet> sent = selfHost.getSent();
-
-        //System.out.println("Received ack from receiver: " + packet.getPacketId());
-        //System.out.println("Messages to remove: " + packet.getAcks());
 
         boolean isNewAck = true;
         for(int packetId : acksQueue) {
@@ -135,8 +129,6 @@ public class PerfectLink {
     }
 
     private void handleAckFromSender(AcksPacket packet) {
-        //System.out.println("Received ack from sender: " + packet.getPacketId());
-        //System.out.println("Messages to remove: " + packet.getAcks());
         int senderIndex = packet.getHostIndex();
         int packetTimestamp = packet.getTimeStamp();
         Host host = hosts.get(senderIndex);

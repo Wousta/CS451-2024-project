@@ -1,26 +1,30 @@
 package cs451.packets;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.LinkedList;
+import java.util.Queue;
 import java.util.stream.Collectors;
 
 public class MsgPacket extends Packet {
 
     public static final int MAX_MSGS = 8;
-    //private boolean isAck = false;
-    private final List<Message> messages = new ArrayList<>(8);
+    private final Queue<Message> messages = new LinkedList<>();
 
     public MsgPacket(byte hostId, byte destinationHostId, int packetId) {
         super(hostId, destinationHostId, packetId);
     }
 
+    /**
+     * Adds a message to the Packet's internal queue of messages.
+     * @param msg the message to be added to the queue
+     * @return true (as specified by Collection.add)
+     */
     public boolean addMessage(Message msg) {
         return messages.add(msg);
     }
 
     ////////////////////// GETTERS & SETTERS //////////////////////
 
-    public List<Message> getMessages() {
+    public Queue<Message> getMessages() {
         return messages;
     }
 

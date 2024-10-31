@@ -30,6 +30,7 @@ public class PPLScheduler {
         this.hosts = parser.hosts();
         selfHost = hosts.get(parser.myIndex());
 
+        // Only one socket for receiving allowed
         selfHost.setSocketReceive(new DatagramSocket(
             selfHost.getPort(), 
             InetAddress.getByName(selfHost.getIp())
@@ -41,6 +42,7 @@ public class PPLScheduler {
         this.executor = executor;
     }
 
+    // Sends messages to one host, receives acks from that host, sends back ack ok.
     protected void runPerfectSender(int[] params) {
         int msgsToSend = params[0];
         int receiverId = params[1];
@@ -64,6 +66,7 @@ public class PPLScheduler {
         executor.execute(sender);
     }
 
+    // Receives messages from multiple hosts, sends back ack message, processes ack ok.
     protected void runPerfectReceiver() {
         List<BlockingQueue<Integer>> pendingAcksList = selfHost.getPendingAcks();
         PerfectLink link = new PerfectLink(
@@ -81,6 +84,7 @@ public class PPLScheduler {
             while(true) link.deliver();
         });
 
+        // Another thread builds ack packets from the acks received
         executor.scheduleAtFixedRate(
             ackBuildAndSend, 
             50, 
@@ -100,6 +104,7 @@ public class PPLScheduler {
             this.receiverId = receiverId;
         }
 
+        // Adds up to 8 messages to a new packet and sends it to the receiver Host.
         public void sendPacket(int msgsToAdd, int currentMsgId) {
             Host targetHost = hosts.get(receiverId-1);
             byte thisHostId = selfHost.getId();
@@ -109,7 +114,6 @@ public class PPLScheduler {
                 packetId.getAndIncrement()
             );
 
-            // Tipically msgsToAdd is 8, because 8 is maximum messages per packet
             for(int i = 0; i < msgsToAdd; i++) {
                 // To string because payload can be any datatype and it only has to be logged, 
                 // so parse to string to be able to cast to string when deserializing to log the message payload.
@@ -128,8 +132,8 @@ public class PPLScheduler {
             int msgId = 1;
             int msgsPerPacket = MsgPacket.MAX_MSGS;
             int iters = msgsToSend/msgsPerPacket; // Each packet can store up to 8 messages
-            int lastIters = msgsToSend % msgsPerPacket;
-            int maxSentSize = 132;
+            int lastIters = msgsToSend % msgsPerPacket; // Remaining messages
+            int maxSentSize = 132; // Maximum size of the sent messages data structure
 
             for(int i = 0; i < iters; i++) {
                 // It waits before sending messages if sent size gets to a limit, to avoid consuming all memory.
@@ -163,6 +167,7 @@ public class PPLScheduler {
             this.pendingAcksList = pendingAcks;
         }
 
+        // Extracts from waiting acks queue and puts them into a new acks queue ready to be sent.
         private BlockingQueue<Integer> buildAckQueue(BlockingQueue<Integer> pendingAcksQueue) {
             int count = 0;
             int acksToAdd = 256;
@@ -185,6 +190,7 @@ public class PPLScheduler {
         public void run() {
             int indexOfTargetHost = 0;
 
+            // A list of ack queues, one queue per host, iterate over the list.
             for(BlockingQueue<Integer> pendingAcksQueue : pendingAcksList) {
                 if(pendingAcksQueue.isEmpty()) {
                     ++indexOfTargetHost;
@@ -194,7 +200,9 @@ public class PPLScheduler {
                 Host targetHost = hosts.get(indexOfTargetHost);
                 ++indexOfTargetHost;
 
+                // Build ack queue to send from pending acks that came from TargetHost
                 BlockingQueue<Integer> ackQueueToSend = buildAckQueue(pendingAcksQueue);
+
                 AcksPacket packet = new AcksPacket(
                     selfHost.getId(), 
                     targetHost.getId(), 

@@ -73,7 +73,6 @@ public class FairLossLink {
      * so threads have to wait for each other and read one port one message at a time.
      * @return the deserialized Message
      */
-    // TODO: a thread has to be used to keep listening and appending received messages, while another thread processes them
     public byte[] deliver() {
         DatagramPacket packet;
         int size = bufSize.get();

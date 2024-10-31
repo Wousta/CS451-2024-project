@@ -27,6 +27,12 @@ public class AcksPacket extends Packet {
         this.acks = acks;
     }
 
+    /**
+     * Used to know if this ack packet comes from the host that delivered the message (receiver), or if it comes from
+     * the host that sent the message (sender). If it comes from receiver it is an ack message, if it comes from sender
+     * it is an ack ok message.
+     * @return True if it is an ACK_RECEIVER packet, false if it is ACK_SENDER packet.
+     */
     public boolean getAckStep() {
         return ackStep;
     }
@@ -39,6 +45,11 @@ public class AcksPacket extends Packet {
         this.acks = acks;
     }
 
+    /**
+     * Sets this ack packet to be a receiver ack (ACK_RECEIVER) or if it is an ack ok packet (ACK_SENDER).
+     * It is boolean for size optimization.
+     * @param ackStep can be ACK_RECEIVER (true) or ACK_SENDER (false).
+     */
     public void setAckStep(boolean ackStep) {
         this.ackStep = ackStep;
     }
