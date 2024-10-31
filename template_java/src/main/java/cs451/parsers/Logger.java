@@ -41,6 +41,7 @@ public class Logger {
                 deliveredCount += m.size();
             }
             writer.write("delivered size = " + deliveredCount);
+            writer.write("\nsent size = " + host.getSent().size());
             writer.close();
         } catch (IOException e) {
             e.printStackTrace();

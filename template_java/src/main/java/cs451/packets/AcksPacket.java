@@ -3,6 +3,9 @@ package cs451.packets;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
+/**
+ * Acks packets only contain one queue with the Ids of the messages delivered by the receiver host.
+ */
 public class AcksPacket extends Packet {
     /**
      * Ack sent by receiver to clear sent messages and send the ack ok message to receiver

@@ -46,7 +46,7 @@ public class PerfectLink {
 
         try {
             Object obj = Packet.deSerialize(data);
-            // Acks packets only contain one message and are lighter when sending
+    
             if(obj instanceof MsgPacket) {
                 handleMsgPacket(data);
             }
@@ -57,7 +57,7 @@ public class PerfectLink {
 
         } catch (Exception e) {
             //System.out.println("Size of buffer was too small ===========================");
-            // Data buffer received was too big, buffe size has been incremented for next try
+            // Data buffer received was too big, buffe size is incremented for next try
             sl.fllIncreaseBufSize();
         } 
     }
@@ -73,7 +73,7 @@ public class PerfectLink {
         // Test if packet already delivered and id is not older than last ack
         if(!senderDelivered.containsKey(packetId) && senderTimeStamp > lastTimeStamp) {
             senderDelivered.put(packetId, packet);
-            //logger.addLine("messages in packet = " + packet.getMessages().size());
+
             // Add id of packet to pending packets to be acked, we only send Ids for acking.
             if(!pendingAcks.get(senderIndex).offer(packetId)) {
                 System.err.println("Offer of new package failed");
@@ -106,7 +106,6 @@ public class PerfectLink {
         boolean isNewAck = true;
         for(int packetId : acksQueue) {
             if(sent.remove(packetId) == null) {
-                //System.out.println("NULL REMOVE EN MAP SENDER");
                 isNewAck = false;
                 break;
             }
@@ -119,12 +118,13 @@ public class PerfectLink {
             packet.getPacketId()
         );
 
+        // Only send the acks Queue if this is a new ack, to avoid null checks that cause duplications.
         ackOk.setAckStep(AcksPacket.ACK_SENDER);
         if(isNewAck) {
             ackOk.setTimeStamp(packetIdAtomic.getAndIncrement());
             ackOk.setAcks(acksQueue);
         }
-
+        //ackOk.setAcks(acksQueue);
         sendAckOk(hosts.get(ackOk.getTargetHostIndex()), ackOk);
     }
 
@@ -135,10 +135,11 @@ public class PerfectLink {
         Queue<Integer> acksQueue = packet.getAcks();
         ConcurrentMap<Integer,Packet> delivered = selfHost.getDelivered().get(senderIndex);
 
+        // TODO: figure out how to detect
         for(int packetId : acksQueue) {
             delivered.remove(packetId);
         }
-
+        
         // Only update timestamp if ack is newer
         if(host.getLastTimeStamp() < packetTimestamp) {
             host.setLastTimeStamp(packetTimestamp);
