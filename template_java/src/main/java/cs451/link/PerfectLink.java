@@ -1,4 +1,4 @@
-package cs451.links;
+package cs451.link;
 
 import java.io.IOException;
 import java.util.List;
@@ -9,11 +9,11 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import cs451.Host;
-import cs451.packets.AcksPacket;
-import cs451.packets.Message;
-import cs451.packets.MsgPacket;
-import cs451.packets.Packet;
-import cs451.parsers.Logger;
+import cs451.packet.AcksPacket;
+import cs451.packet.Message;
+import cs451.packet.MsgPacket;
+import cs451.packet.Packet;
+import cs451.parser.Logger;
 
 public class PerfectLink {
 
@@ -103,10 +103,10 @@ public class PerfectLink {
         BlockingQueue<Integer> acksQueue = packet.getAcks();
         ConcurrentMap<Integer,Packet> sent = selfHost.getSent();
 
-        boolean isNewAck = true;
+        //boolean isNewAck = true;
         for(int packetId : acksQueue) {
             if(sent.remove(packetId) == null) {
-                isNewAck = false;
+                //isNewAck = false;
                 break;
             }
         }
@@ -120,10 +120,12 @@ public class PerfectLink {
 
         // Only send the acks Queue if this is a new ack, to avoid null checks that cause duplications.
         ackOk.setAckStep(AcksPacket.ACK_SENDER);
-        if(isNewAck) {
-            ackOk.setTimeStamp(packetIdAtomic.getAndIncrement());
-            ackOk.setAcks(acksQueue);
-        }
+        // if(isNewAck) {
+        //     ackOk.setTimeStamp(packetIdAtomic.getAndIncrement());
+        //     ackOk.setAcks(acksQueue);
+        // }
+        ackOk.setTimeStamp(packetIdAtomic.getAndIncrement());
+        ackOk.setAcks(acksQueue);
 
         sendAckOk(hosts.get(ackOk.getTargetHostIndex()), ackOk);
     }
@@ -136,13 +138,18 @@ public class PerfectLink {
         ConcurrentMap<Integer,Packet> delivered = selfHost.getDelivered().get(senderIndex);
 
         // TODO: figure out how to detect that the queue has been processed without causing null values, while being fast
+        boolean isNewAck = true;
         for(int packetId : acksQueue) {
-            delivered.remove(packetId);
+            if(delivered.remove(packetId) == null) {
+                isNewAck = false;
+                break;
+            }
         }
         
         // Only update timestamp if ack is newer
-        if(host.getLastTimeStamp() < packetTimestamp) {
+        if(host.getLastTimeStamp() < packetTimestamp && isNewAck) {
             host.setLastTimeStamp(packetTimestamp);
+            selfHost.getSent().remove(packet.getPacketId());
             return;
         }
 

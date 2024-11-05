@@ -10,7 +10,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.LinkedBlockingQueue;
 
-import cs451.packets.Packet;
+import cs451.packet.Packet;
 
 public class Host {
 
@@ -38,7 +38,7 @@ public class Host {
      * Stores the sent packets.
      * The key is the PacketId.
      */
-    private ConcurrentHashMap<Integer,Packet> sent = new ConcurrentHashMap<>(64, 0.75f, Constants.N_THREADS);
+    private ConcurrentHashMap<Integer,Packet> sent = new ConcurrentHashMap<>(16, 0.75f, Constants.N_THREADS);
 
     public boolean populate(String idString, String ipString, String portString) {
         try {
@@ -79,7 +79,7 @@ public class Host {
         pendingAcks = new ArrayList<>(nHosts);
         
         for (int i = 0; i < nHosts; i++) {
-            delivered.add(new ConcurrentHashMap<>(32, 0.75f, Constants.N_THREADS));
+            delivered.add(new ConcurrentHashMap<>(16, 0.75f, Constants.N_THREADS));
             pendingAcks.add(new LinkedBlockingQueue<>());
         }
     }

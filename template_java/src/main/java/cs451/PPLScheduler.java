@@ -11,13 +11,13 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import cs451.links.PerfectLink;
-import cs451.packets.AcksPacket;
-import cs451.packets.Message;
-import cs451.packets.MsgPacket;
-import cs451.packets.Packet;
-import cs451.parsers.Logger;
-import cs451.parsers.Parser;
+import cs451.link.PerfectLink;
+import cs451.packet.AcksPacket;
+import cs451.packet.Message;
+import cs451.packet.MsgPacket;
+import cs451.packet.Packet;
+import cs451.parser.Logger;
+import cs451.parser.Parser;
 
 public class PPLScheduler {
     private AtomicInteger packetId = new AtomicInteger(1);
@@ -25,8 +25,12 @@ public class PPLScheduler {
     private Host selfHost;
     private Logger logger;
     private ScheduledExecutorService executor;
+    private int[] input;
+    private int loadBalancer;
+    private static final int MSGS_TO_SEND_INDEX = 0;
+    private static final int RECEIVER_ID_INDEX = 1;
 
-    public PPLScheduler(Parser parser, Logger logger, ScheduledExecutorService executor) throws SocketException, UnknownHostException {
+    public PPLScheduler(Parser parser, Logger logger, ScheduledExecutorService executor, int[] input) throws SocketException, UnknownHostException {
         this.hosts = parser.hosts();
         selfHost = hosts.get(parser.myIndex());
 
@@ -38,14 +42,18 @@ public class PPLScheduler {
 
         selfHost.setOutputPath(parser.output());
         selfHost.initLists(hosts.size());
+        loadBalancer = (int) (170 * Math.exp(-3 * (double)hosts.size()/100));
+        System.out.println("loadbalancer = " + loadBalancer);
         this.logger = logger;
         this.executor = executor;
+        this.input = input;
     }
 
+
     // Sends messages to one host, receives acks from that host, sends back ack ok.
-    protected void runPerfectSender(int[] params) {
-        int msgsToSend = params[0];
-        int receiverId = params[1];
+    protected void runPerfectSender() {
+        int msgsToSend = input[MSGS_TO_SEND_INDEX];
+        int receiverId = input[RECEIVER_ID_INDEX];
         PerfectLink link = new PerfectLink(
             selfHost, 
             hosts, 
@@ -133,11 +141,11 @@ public class PPLScheduler {
             int msgsPerPacket = MsgPacket.MAX_MSGS;
             int iters = msgsToSend/msgsPerPacket; // Each packet can store up to 8 messages
             int lastIters = msgsToSend % msgsPerPacket; // Remaining messages
-            int maxSentSize = 132; // Maximum size of the sent messages data structure
+            int maxSentSize = loadBalancer;//132; // Maximum size of the sent messages data structure
 
             for(int i = 0; i < iters; i++) {
                 // It waits before sending messages if sent size gets to a limit, to avoid consuming all memory.
-                while(selfHost.getSent().size() > maxSentSize) {
+                while(selfHost.getSent().size() >= maxSentSize) {
                     try {
                         Thread.sleep(100);
                     } catch (InterruptedException e) {
@@ -170,7 +178,7 @@ public class PPLScheduler {
         // Extracts from waiting acks queue and puts them into a new acks queue ready to be sent.
         private BlockingQueue<Integer> buildAckQueue(BlockingQueue<Integer> pendingAcksQueue) {
             int count = 0;
-            int acksToAdd = 256;
+            int acksToAdd = loadBalancer * 2;//256;
             BlockingQueue<Integer> ackQueueToSend = new LinkedBlockingDeque<>();
 
             while(!pendingAcksQueue.isEmpty() && count < acksToAdd) {

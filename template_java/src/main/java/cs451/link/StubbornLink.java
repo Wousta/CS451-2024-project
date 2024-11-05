@@ -1,4 +1,4 @@
-package cs451.links;
+package cs451.link;
 
 import java.net.SocketException;
 import java.util.List;
@@ -8,7 +8,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import cs451.Host;
-import cs451.packets.Packet;
+import cs451.packet.Packet;
 
 /**
  * Use it inside PerfectLink to guarantee Stubborn delivery.

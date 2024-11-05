@@ -1,4 +1,4 @@
-package cs451.parsers;
+package cs451.parser;
 
 public class IdParser {
 

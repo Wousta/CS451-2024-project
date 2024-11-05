@@ -9,8 +9,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-import cs451.parsers.Logger;
-import cs451.parsers.Parser;
+import cs451.parser.Logger;
+import cs451.parser.Parser;
 
 public class Main {
     private static Logger logger;
@@ -57,12 +57,11 @@ public class Main {
 
         initSignalHandlers();
 
-        PPLScheduler scheduler;
+
         int[] input; // Argumens of the configuration
         try (BufferedReader reader = new BufferedReader(new FileReader(config))) {
             String[] parts = reader.readLine().trim().split("\\s+");
             input = Arrays.stream(parts).mapToInt(Integer::parseInt).toArray();
-            scheduler = new PPLScheduler(parser, logger, executor);
         }
         catch(Exception e){
             System.err.println("Bad initialization");
@@ -71,15 +70,16 @@ public class Main {
         }
 
         // Summary of hosts, configuration, output files
-        printSummary(parser);
+        //printSummary(parser);
 
         switch (input.length) {
             case FIFO:
                 // Run fifo
                 break;
             case PERFECT_LINK:
+                PPLScheduler scheduler = new PPLScheduler(parser, logger, executor, input);
                 if(input[1] == thisHost.getId()) scheduler.runPerfectReceiver();
-                else scheduler.runPerfectSender(input);
+                else scheduler.runPerfectSender();
                 break;
             case LATTICE:
                 // Run Lattice

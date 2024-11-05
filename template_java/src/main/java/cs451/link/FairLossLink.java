@@ -1,4 +1,4 @@
-package cs451.links;
+package cs451.link;
 
 import java.io.IOException;
 import java.net.DatagramPacket;
@@ -7,8 +7,8 @@ import java.net.SocketException;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import cs451.Host;
-import cs451.packets.MsgPacket;
-import cs451.packets.Packet;
+import cs451.packet.MsgPacket;
+import cs451.packet.Packet;
 
 /**
  * Can send and deliver Messages using UDP packets.

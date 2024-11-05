@@ -1,4 +1,4 @@
-package cs451.packets;
+package cs451.packet;
 
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
