@@ -26,7 +26,7 @@ public class PPLScheduler {
     private Logger logger;
     private ScheduledExecutorService executor;
     private int[] input;
-    private int loadBalancer;
+    private LoadBalancer loadBalancer;
     private static final int MSGS_TO_SEND_INDEX = 0;
     private static final int RECEIVER_ID_INDEX = 1;
 
@@ -42,8 +42,7 @@ public class PPLScheduler {
 
         selfHost.setOutputPath(parser.output());
         selfHost.initLists(hosts.size());
-        loadBalancer = (int) (170 * Math.exp(-3 * (double)hosts.size()/100));
-        System.out.println("loadbalancer = " + loadBalancer);
+        loadBalancer = new LoadBalancer(hosts.size(), input[MSGS_TO_SEND_INDEX]);
         this.logger = logger;
         this.executor = executor;
         this.input = input;
@@ -141,7 +140,7 @@ public class PPLScheduler {
             int msgsPerPacket = MsgPacket.MAX_MSGS;
             int iters = msgsToSend/msgsPerPacket; // Each packet can store up to 8 messages
             int lastIters = msgsToSend % msgsPerPacket; // Remaining messages
-            int maxSentSize = loadBalancer;//132; // Maximum size of the sent messages data structure
+            int maxSentSize = loadBalancer.getSentMaxSize();//132; // Maximum size of the sent messages data structure
 
             for(int i = 0; i < iters; i++) {
                 // It waits before sending messages if sent size gets to a limit, to avoid consuming all memory.
@@ -178,7 +177,7 @@ public class PPLScheduler {
         // Extracts from waiting acks queue and puts them into a new acks queue ready to be sent.
         private BlockingQueue<Integer> buildAckQueue(BlockingQueue<Integer> pendingAcksQueue) {
             int count = 0;
-            int acksToAdd = loadBalancer * 2;//256;
+            int acksToAdd = loadBalancer.getAcksToAdd();
             BlockingQueue<Integer> ackQueueToSend = new LinkedBlockingDeque<>();
 
             while(!pendingAcksQueue.isEmpty() && count < acksToAdd) {
