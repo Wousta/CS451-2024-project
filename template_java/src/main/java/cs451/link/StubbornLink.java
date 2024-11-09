@@ -17,24 +17,38 @@ public class StubbornLink {
     
     private ConcurrentMap<Integer,Packet> sent;
     private FairLossLink fll;
+    private PerfectLink ppl;
+    private Object sentLock;
 
-    public StubbornLink(Host thisHost, List<Host> hosts, ScheduledExecutorService executor, AtomicInteger packetId){
+    public StubbornLink(Host thisHost, List<Host> hosts, ScheduledExecutorService executor, AtomicInteger packetId, Object sentLock, PerfectLink ppl){
         try {
-            fll = new FairLossLink(thisHost.getSocketReceive());
+            fll = new FairLossLink(thisHost.getSocketReceive(), executor, sentLock, this);
         } catch (SocketException e) {
             e.printStackTrace();
         }
 
         sent = thisHost.getSent();
+        this.ppl = ppl;
+        this.sentLock = sentLock;
 
         // Resend operation of stubbornLink that guarantees eventual delivery between correct processes.
         executor.scheduleWithFixedDelay(() -> {
-            sent.forEach((id, packet) -> {
-                packet.setTimeStamp(packetId.getAndIncrement());
-                fll.send(hosts.get(packet.getTargetHostIndex()), packet);
-            });
+            synchronized(this.sentLock) {
+                sent.forEach((id, packet) -> {
+                    packet.setTimeStamp(packetId.getAndIncrement());
+                    fll.send(hosts.get(packet.getTargetHostIndex()), packet);
+                });
+            }
         }, 200, 200, TimeUnit.MILLISECONDS);
     }
+
+    
+
+    public FairLossLink getFairLossLink() {
+        return fll;
+    }
+
+
 
     public void send(Host h, Packet p) {
         fll.send(h, p);
@@ -58,8 +72,8 @@ public class StubbornLink {
         fll.send(h, p); 
     }
 
-    public byte[] deliver() {
-        return fll.deliver();
+    public void deliver(byte[] data) {
+        ppl.deliver(data);
     }
 
     // Called by perfectLink to tell FairlossLink to increase buffer size

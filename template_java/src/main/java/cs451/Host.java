@@ -27,7 +27,7 @@ public class Host {
      * Stores delivered messages from each sender host.
      * Key of the map is the id of the message.
      */
-    private List<ConcurrentHashMap<Integer,Packet>> delivered;
+    private List<ConcurrentHashMap<Integer,Boolean>> delivered;
 
     /**
      * List of indexes of the messages waiting for acks, it grows per new packet delivered.
@@ -134,7 +134,7 @@ public class Host {
      * Returns the List that contains a map of delivered packets for each host.
      * @return the ConcurrentLinkedQueue for concurrent access with the delivered messages
      */
-    public List<ConcurrentHashMap<Integer,Packet>> getDelivered() {
+    public List<ConcurrentHashMap<Integer,Boolean>> getDelivered() {
         return delivered;
     }
 

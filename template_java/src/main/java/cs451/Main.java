@@ -14,7 +14,7 @@ import cs451.parser.Parser;
 
 public class Main {
     private static Logger logger;
-    private static ScheduledExecutorService executor = Executors.newScheduledThreadPool(4);
+    private static ScheduledExecutorService executor = Executors.newScheduledThreadPool(8);
     private static final int FIFO = 1;
     private static final int PERFECT_LINK = 2;
     private static final int LATTICE = 3;

@@ -66,11 +66,13 @@ public class PPLScheduler {
             link
         );
 
-        executor.execute( () -> {
-            while(true) link.deliver();
-        });
+        // executor.execute( () -> {
+        //     while(true) link.deliver();
+        // });
 
         executor.execute(sender);
+
+        link.getStubbornLink().getFairLossLink().deliver();
     }
 
     // Receives messages from multiple hosts, sends back ack message, processes ack ok.
@@ -84,20 +86,22 @@ public class PPLScheduler {
             packetId
         );
 
-        AckBuildAndSend ackBuildAndSend = new AckBuildAndSend(link, pendingAcksList);
+        //AckBuildAndSend ackBuildAndSend = new AckBuildAndSend(link, pendingAcksList);
         
         // One thread permanently receives packets
-        executor.execute( () -> {
-            while(true) link.deliver();
-        });
+        // executor.execute( () -> {
+        //     while(true) link.deliver();
+        // });
 
         // Another thread builds ack packets from the acks received
-        executor.scheduleAtFixedRate(
-            ackBuildAndSend, 
-            50, 
-            50, 
-            TimeUnit.MILLISECONDS
-        );
+        // executor.scheduleAtFixedRate(
+        //     ackBuildAndSend, 
+        //     50, 
+        //     50, 
+        //     TimeUnit.MILLISECONDS
+        // );
+
+        link.getStubbornLink().getFairLossLink().deliver();
     }
 
     private class MessageSender implements Runnable {
@@ -140,7 +144,7 @@ public class PPLScheduler {
             int msgsPerPacket = MsgPacket.MAX_MSGS;
             int iters = msgsToSend/msgsPerPacket; // Each packet can store up to 8 messages
             int lastIters = msgsToSend % msgsPerPacket; // Remaining messages
-            int maxSentSize = loadBalancer.getSentMaxSize();//132; // Maximum size of the sent messages data structure
+            int maxSentSize = 256;//loadBalancer.getSentMaxSize();//132; // Maximum size of the sent messages data structure
 
             for(int i = 0; i < iters; i++) {
                 // It waits before sending messages if sent size gets to a limit, to avoid consuming all memory.
@@ -177,7 +181,7 @@ public class PPLScheduler {
         // Extracts from waiting acks queue and puts them into a new acks queue ready to be sent.
         private BlockingQueue<Integer> buildAckQueue(BlockingQueue<Integer> pendingAcksQueue) {
             int count = 0;
-            int acksToAdd = loadBalancer.getAcksToAdd();
+            int acksToAdd = 256;//loadBalancer.getAcksToAdd();
             BlockingQueue<Integer> ackQueueToSend = new LinkedBlockingDeque<>();
 
             while(!pendingAcksQueue.isEmpty() && count < acksToAdd) {

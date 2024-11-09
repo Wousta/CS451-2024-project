@@ -36,12 +36,12 @@ public class Logger {
 
     public void close() {
         try {
-            // int deliveredCount = 0;
-            // for(ConcurrentHashMap<Integer, Packet> m : host.getDelivered()) {
-            //     deliveredCount += m.size();
-            // }
-            // writer.write("delivered size = " + deliveredCount);
-            // writer.write("\nsent size = " + host.getSent().size());
+            int deliveredCount = 0;
+            for(ConcurrentHashMap<Integer, Boolean> m : host.getDelivered()) {
+                deliveredCount += m.size();
+            }
+            writer.write("delivered size = " + deliveredCount);
+            writer.write("\nsent size = " + host.getSent().size());
             writer.close();
         } catch (IOException e) {
             e.printStackTrace();

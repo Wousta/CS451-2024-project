@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.SocketException;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import cs451.Host;
@@ -21,13 +22,19 @@ public class FairLossLink {
     private final DatagramSocket socketSendAck;
     private final Object sendLock = new Object(); // Lock for socketSend
     private final Object sendAckLock = new Object(); // Lock for socketSendAck
+    private Object sentLock;
     // The size will be incremented if some packet exceeds the expected size
     private AtomicInteger bufSize = new AtomicInteger(Packet.EXPECTED_SIZE);
+    private StubbornLink sll;
+    ScheduledExecutorService executor;
 
-    public FairLossLink(DatagramSocket socketReceive) throws SocketException {
+    public FairLossLink(DatagramSocket socketReceive,  ScheduledExecutorService executor, Object sentLock, StubbornLink sll) throws SocketException {
         this.socketReceive = socketReceive;
         this.socketSend = new DatagramSocket();
         this.socketSendAck = new DatagramSocket();
+        this.sentLock = sentLock;
+        this.executor = executor;
+        this.sll = sll;
     }
 
     /**
@@ -73,17 +80,22 @@ public class FairLossLink {
      * so threads have to wait for each other and read one port one message at a time.
      * @return the deserialized Message
      */
-    public byte[] deliver() {
-        DatagramPacket packet;
-        int size = bufSize.get();
-        packet = new DatagramPacket(new byte[size], size);
-        try {
-            socketReceive.receive(packet);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+    public void deliver() {
+        while(true) {
+            int size = bufSize.get();
+            DatagramPacket packet = new DatagramPacket(new byte[size], size);
+            try {
+                socketReceive.receive(packet);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
 
-        return packet.getData();
+            executor.execute(() -> {
+                //synchronized(sentLock) {
+                    sll.deliver(packet.getData());
+                //}
+            });
+        }
     }
 
     public void adjustBufSize() {
