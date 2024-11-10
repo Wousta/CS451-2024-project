@@ -9,7 +9,7 @@ public class MsgPacket extends Packet {
     public static final int MAX_MSGS = 8;
     private final Queue<Message> messages = new LinkedList<>();
 
-    public MsgPacket(byte hostId, byte destinationHostId, int packetId) {
+    public MsgPacket(byte hostId, byte destinationHostId, Long packetId) {
         super(hostId, destinationHostId, packetId);
     }
 

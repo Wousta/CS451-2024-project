@@ -22,19 +22,17 @@ public class FairLossLink {
     private final DatagramSocket socketSendAck;
     private final Object sendLock = new Object(); // Lock for socketSend
     private final Object sendAckLock = new Object(); // Lock for socketSendAck
-    private Object sentLock;
     // The size will be incremented if some packet exceeds the expected size
     private AtomicInteger bufSize = new AtomicInteger(Packet.EXPECTED_SIZE);
-    private StubbornLink sll;
+    private PerfectLink perfectLink;
     ScheduledExecutorService executor;
 
-    public FairLossLink(DatagramSocket socketReceive,  ScheduledExecutorService executor, Object sentLock, StubbornLink sll) throws SocketException {
+    public FairLossLink(DatagramSocket socketReceive,  ScheduledExecutorService executor, PerfectLink perfectLink) throws SocketException {
         this.socketReceive = socketReceive;
         this.socketSend = new DatagramSocket();
         this.socketSendAck = new DatagramSocket();
-        this.sentLock = sentLock;
         this.executor = executor;
-        this.sll = sll;
+        this.perfectLink = perfectLink;
     }
 
     /**
@@ -90,15 +88,11 @@ public class FairLossLink {
                 e.printStackTrace();
             }
 
-            executor.execute(() -> {
-                //synchronized(sentLock) {
-                    sll.deliver(packet.getData());
-                //}
-            });
+            executor.execute(() -> perfectLink.deliver(packet.getData()));
         }
     }
 
-    public void adjustBufSize() {
+    public synchronized void adjustBufSize() {
         int newSize = bufSize.get()*2;
 
         if(newSize > Packet.MAX_PACKET_SIZE) bufSize.set(Packet.MAX_PACKET_SIZE);

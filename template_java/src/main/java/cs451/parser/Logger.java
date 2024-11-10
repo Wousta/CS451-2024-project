@@ -3,9 +3,12 @@ package cs451.parser;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.ConcurrentHashMap;
 
 import cs451.Host;
@@ -14,10 +17,13 @@ import cs451.packet.Packet;
 public class Logger {
     private static final BlockingQueue<String> outPutMsgs = new LinkedBlockingQueue<>();
     private BufferedWriter writer;
-    private Host host;
+    private List<Host> hosts;
+    private int myIndex;
+    private AtomicLong packetId;
 
-    public Logger(String path, Host host){
-        this.host = host;
+    public Logger(String path, List<Host> hosts, int myIndex){
+        this.hosts = hosts;
+        this.myIndex = myIndex;
         try {
             writer = new BufferedWriter(new FileWriter(path), 32768);
         } catch (IOException e) {
@@ -25,6 +31,14 @@ public class Logger {
             e.printStackTrace();
         }
     }
+
+    
+
+    public void setPacketId(AtomicLong packetId) {
+        this.packetId = packetId;
+    }
+
+
 
     public void addLine(String msg) {
         try {
@@ -37,11 +51,12 @@ public class Logger {
     public void close() {
         try {
             int deliveredCount = 0;
-            for(ConcurrentHashMap<Integer, Boolean> m : host.getDelivered()) {
-                deliveredCount += m.size();
+            for(Host h : hosts) {
+                deliveredCount += h.getDelivered().size();
             }
             writer.write("delivered size = " + deliveredCount);
-            writer.write("\nsent size = " + host.getSent().size());
+            writer.write("\nsent size = " + hosts.get(myIndex).getSent().size());
+            writer.write("\natomic integer value reached = " + packetId.get());
             writer.close();
         } catch (IOException e) {
             e.printStackTrace();

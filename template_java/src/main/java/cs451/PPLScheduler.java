@@ -10,6 +10,7 @@ import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 import cs451.link.PerfectLink;
 import cs451.packet.AcksPacket;
@@ -20,7 +21,8 @@ import cs451.parser.Logger;
 import cs451.parser.Parser;
 
 public class PPLScheduler {
-    private AtomicInteger packetId = new AtomicInteger(1);
+    private AtomicLong packetId = new AtomicLong(1);
+    private final int myIndex;
     private List<Host> hosts;
     private Host selfHost;
     private Logger logger;
@@ -32,7 +34,8 @@ public class PPLScheduler {
 
     public PPLScheduler(Parser parser, Logger logger, ScheduledExecutorService executor, int[] input) throws SocketException, UnknownHostException {
         this.hosts = parser.hosts();
-        selfHost = hosts.get(parser.myIndex());
+        this.myIndex = parser.myIndex();
+        this.selfHost = hosts.get(parser.myIndex());
 
         // Only one socket for receiving allowed
         selfHost.setSocketReceive(new DatagramSocket(
@@ -41,9 +44,10 @@ public class PPLScheduler {
         ));
 
         selfHost.setOutputPath(parser.output());
-        selfHost.initLists(hosts.size());
+
         loadBalancer = new LoadBalancer(hosts.size(), input[MSGS_TO_SEND_INDEX]);
         this.logger = logger;
+        this.logger.setPacketId(packetId);
         this.executor = executor;
         this.input = input;
     }
@@ -72,12 +76,12 @@ public class PPLScheduler {
 
         executor.execute(sender);
 
-        link.getStubbornLink().getFairLossLink().deliver();
+        link.getFairLossLink().deliver();
     }
 
     // Receives messages from multiple hosts, sends back ack message, processes ack ok.
     protected void runPerfectReceiver() {
-        List<BlockingQueue<Integer>> pendingAcksList = selfHost.getPendingAcks();
+        //List<BlockingQueue<Integer>> pendingAcksList = selfHost.getPendingAcks();
         PerfectLink link = new PerfectLink(
             selfHost, 
             hosts, 
@@ -101,7 +105,7 @@ public class PPLScheduler {
         //     TimeUnit.MILLISECONDS
         // );
 
-        link.getStubbornLink().getFairLossLink().deliver();
+        link.getFairLossLink().deliver();
     }
 
     private class MessageSender implements Runnable {
@@ -202,27 +206,27 @@ public class PPLScheduler {
             int indexOfTargetHost = 0;
 
             // A list of ack queues, one queue per host, iterate over the list.
-            for(BlockingQueue<Integer> pendingAcksQueue : pendingAcksList) {
-                if(pendingAcksQueue.isEmpty()) {
-                    ++indexOfTargetHost;
-                    continue;
-                }
+            // for(BlockingQueue<Long> pendingAcksQueue : pendingAcksList) {
+            //     if(pendingAcksQueue.isEmpty()) {
+            //         ++indexOfTargetHost;
+            //         continue;
+            //     }
 
-                Host targetHost = hosts.get(indexOfTargetHost);
-                ++indexOfTargetHost;
+            //     Host targetHost = hosts.get(indexOfTargetHost);
+            //     ++indexOfTargetHost;
 
-                // Build ack queue to send from pending acks that came from TargetHost
-                BlockingQueue<Integer> ackQueueToSend = buildAckQueue(pendingAcksQueue);
+            //     // Build ack queue to send from pending acks that came from TargetHost
+            //     BlockingQueue<Long> ackQueueToSend = buildAckQueue(pendingAcksQueue);
 
-                AcksPacket packet = new AcksPacket(
-                    selfHost.getId(), 
-                    targetHost.getId(), 
-                    packetId.getAndIncrement(), 
-                    ackQueueToSend
-                );
+            //     AcksPacket packet = new AcksPacket(
+            //         selfHost.getId(), 
+            //         targetHost.getId(), 
+            //         packetId.getAndIncrement(), 
+            //         ackQueueToSend
+            //     );
 
-                link.send(targetHost, packet);
-            }
+            //     link.send(targetHost, packet);
+            // }
         }
         
     }

@@ -12,12 +12,12 @@ public abstract class Packet implements Serializable {
     public static final int EXPECTED_SIZE = 2356;
 
     protected final byte hostId;
-    protected final int packetId; // Serves as timestamp, since it is incremented by an atomic int each time a packet is created
-    protected int timeStamp;
+    protected final long packetId; // Serves as timestamp, since it is incremented by an atomic int each time a packet is created
+    protected long timeStamp;
     protected byte lastHop;  // Last host Id that received the message
     protected byte targetHostId; // Used by stubbornLink to know to which host each packet has to be sent
 
-    protected Packet(byte hostId, byte targetHostId, int packetId) {
+    protected Packet(byte hostId, byte targetHostId, Long packetId) {
         this.hostId = hostId;
         this.targetHostId = targetHostId;
         this.packetId = packetId;
@@ -28,7 +28,7 @@ public abstract class Packet implements Serializable {
         return hostId;
     }
 
-    public int getPacketId() {
+    public long getPacketId() {
         return packetId;
     }
 
@@ -44,11 +44,11 @@ public abstract class Packet implements Serializable {
         this.lastHop = lastHop;
     }
 
-    public int getTimeStamp() {
+    public long getTimeStamp() {
         return timeStamp;
     }
 
-    public void setTimeStamp(int timeStamp) {
+    public void setTimeStamp(Long timeStamp) {
         this.timeStamp = timeStamp;
     }
 

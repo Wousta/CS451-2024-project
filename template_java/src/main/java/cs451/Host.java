@@ -16,7 +16,7 @@ public class Host {
 
     private static final String IP_START_REGEX = "/";
 
-    private int lastTimeStamp = 0; // Most recent timestamp received in an ack from this host
+    private long lastTimeStamp = 0; // Most recent timestamp received in an ack from this host
     private byte id;
     private String ip;
     private int port = -1;
@@ -24,21 +24,21 @@ public class Host {
     private DatagramSocket socketReceive;
     
     /**
-     * Stores delivered messages from each sender host.
+     * Stores delivered messages that came from this host.
      * Key of the map is the id of the message.
      */
-    private List<ConcurrentHashMap<Integer,Boolean>> delivered;
+    private ConcurrentHashMap<Long,Boolean> delivered = new ConcurrentHashMap<>(16, 0.75f, Constants.N_THREADS);
 
     /**
      * List of indexes of the messages waiting for acks, it grows per new packet delivered.
      */
-    private List<BlockingQueue<Integer>> pendingAcks;
+    private BlockingQueue<Long> pendingAcks = new LinkedBlockingQueue<>();
 
     /**
      * Stores the sent packets.
      * The key is the PacketId.
      */
-    private ConcurrentHashMap<Integer,Packet> sent = new ConcurrentHashMap<>(16, 0.75f, Constants.N_THREADS);
+    private ConcurrentHashMap<Long,Packet> sent = new ConcurrentHashMap<>(16, 0.75f, Constants.N_THREADS);
 
     public boolean populate(String idString, String ipString, String portString) {
         try {
@@ -67,21 +67,6 @@ public class Host {
         }
 
         return true;
-    }
-
-    /**
-     * Since Hosts are created beforehand, the data structures have to be initialized in the scheduler.
-     * It initializes the delivered and pendingAcks lists.
-     * @param nHosts the number of hosts in the system.
-     */
-    public void initLists(int nHosts) {
-        delivered = new ArrayList<>(nHosts);
-        pendingAcks = new ArrayList<>(nHosts);
-        
-        for (int i = 0; i < nHosts; i++) {
-            delivered.add(new ConcurrentHashMap<>(16, 0.75f, Constants.N_THREADS));
-            pendingAcks.add(new LinkedBlockingQueue<>());
-        }
     }
 
     // GETTERS ================================================
@@ -126,7 +111,7 @@ public class Host {
      * Returns the map of sent packets of this host. Key is the id of the host.
      * @return the ConcurrentLinkedQueue for concurrent access with the sent messages
      */
-    public ConcurrentMap<Integer, Packet> getSent() {
+    public ConcurrentMap<Long, Packet> getSent() {
         return sent;
     }
 
@@ -134,7 +119,7 @@ public class Host {
      * Returns the List that contains a map of delivered packets for each host.
      * @return the ConcurrentLinkedQueue for concurrent access with the delivered messages
      */
-    public List<ConcurrentHashMap<Integer,Boolean>> getDelivered() {
+    public ConcurrentHashMap<Long, Boolean> getDelivered() {
         return delivered;
     }
 
@@ -148,7 +133,7 @@ public class Host {
      * therefore should be ignored.
      * @return the most recent timestamp received in an ack from this host
      */
-    public int getLastTimeStamp() {
+    public long getLastTimeStamp() {
         return lastTimeStamp;
     }
 
@@ -156,7 +141,7 @@ public class Host {
      * List that contains a queue for each host. The queue contains the Ids of the packets pending for an ack.
      * @return A list containing N queues of integers, where N is the number of hosts.
      */
-    public List<BlockingQueue<Integer>> getPendingAcks() {
+    public BlockingQueue<Long> getPendingAcks() {
         return pendingAcks;
     }
 
@@ -172,7 +157,7 @@ public class Host {
         this.outputPath = outputPath;
     }
 
-    public void setLastTimeStamp(int lastAckTimestamp) {
+    public void setLastTimeStamp(long lastAckTimestamp) {
         this.lastTimeStamp = lastAckTimestamp;
     }
 

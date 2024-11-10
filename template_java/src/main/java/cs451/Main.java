@@ -14,7 +14,7 @@ import cs451.parser.Parser;
 
 public class Main {
     private static Logger logger;
-    private static ScheduledExecutorService executor = Executors.newScheduledThreadPool(8);
+    private static ScheduledExecutorService executor = Executors.newScheduledThreadPool(Constants.N_THREADS);
     private static final int FIFO = 1;
     private static final int PERFECT_LINK = 2;
     private static final int LATTICE = 3;
@@ -52,8 +52,9 @@ public class Main {
         parser.parse();
         
         String config = parser.config();
-        Host thisHost = parser.hosts().get(parser.myIndex());
-        logger = new Logger(parser.output(), thisHost);
+        List<Host> hosts = parser.hosts();
+        Host thisHost = hosts.get(parser.myIndex());
+        logger = new Logger(parser.output(), hosts, parser.myIndex());
 
         initSignalHandlers();
 
