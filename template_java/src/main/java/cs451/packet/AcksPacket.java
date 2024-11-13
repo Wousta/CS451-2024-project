@@ -19,14 +19,14 @@ public class AcksPacket extends Packet {
 
     // Initialized to ACK_RECEIVER since the sender of first ack message in the exchange is the receiver
     private boolean ackStep = ACK_RECEIVER;
-    private BlockingQueue<Long> acks = new LinkedBlockingQueue<>();
+    private BlockingQueue<Integer> acks = new LinkedBlockingQueue<>();
 
-    public AcksPacket(byte hostId, byte destinationHostId, Long packetId) {
-        super(hostId, destinationHostId, packetId);
+    public AcksPacket(byte hostId, byte destinationHostId) {
+        super(hostId, destinationHostId);
     }
 
-    public AcksPacket(byte hostId, byte destinationHostId, Long packetId, BlockingQueue<Long> acks) {
-        super(hostId, destinationHostId, packetId);
+    public AcksPacket(byte hostId, byte destinationHostId, BlockingQueue<Integer> acks) {
+        super(hostId, destinationHostId);
         this.acks = acks;
     }
 
@@ -40,11 +40,11 @@ public class AcksPacket extends Packet {
         return ackStep;
     }
 
-    public BlockingQueue<Long> getAcks() {
+    public BlockingQueue<Integer> getAcks() {
         return acks;
     }
 
-    public void setAcks(BlockingQueue<Long> acks) {
+    public void setAcks(BlockingQueue<Integer> acks) {
         this.acks = acks;
     }
 

@@ -21,6 +21,12 @@ public class Constants {
     // A message with id -1 is an ack message
     public static final int ID_ACK_MSG = -1;
 
+    // Number of threads used in the thread pool
     public static final int N_THREADS = 4;
+
+    // The three execution modes available
+    public static final int FIFO = 1;
+    public static final int PERFECT_LINK = 2;
+    public static final int LATTICE = 3;
 
 }

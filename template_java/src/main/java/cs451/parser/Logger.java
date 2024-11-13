@@ -12,6 +12,8 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.ConcurrentHashMap;
 
 import cs451.Host;
+import cs451.packet.Message;
+import cs451.packet.MsgPacket;
 import cs451.packet.Packet;
 
 public class Logger {
@@ -20,6 +22,8 @@ public class Logger {
     private List<Host> hosts;
     private int myIndex;
     private AtomicLong packetId;
+    private int deliveredCount = 0;
+
 
     public Logger(String path, List<Host> hosts, int myIndex){
         this.hosts = hosts;
@@ -38,25 +42,33 @@ public class Logger {
         this.packetId = packetId;
     }
 
+    public synchronized void logPacket(MsgPacket packet) throws ClassNotFoundException, IOException {
+        for(Message m : packet.getMessages()) {
+            //System.out.println("d " + m.getHostId() + " " + (String)MsgPacket.deSerialize(m.getData()));
+            addLine("d " + m.getHostId() + " " + (String)Packet.deSerialize(m.getData()));
+            ++deliveredCount;
+        }
+    }
 
-
-    public void addLine(String msg) {
+    public synchronized void addLine(String msg) {
         try {
             writer.write(msg + "\n");
         } catch (IOException e) {
+            System.out.println("error aqui");
             e.printStackTrace();
         }
     }
 
     public void close() {
         try {
-            int deliveredCount = 0;
+            int deliveredRemaining = 0;
             for(Host h : hosts) {
-                deliveredCount += h.getDelivered().size();
+                deliveredRemaining += h.getDelivered().size();
             }
-            writer.write("delivered size = " + deliveredCount);
+            writer.write("delivered size = " + deliveredRemaining);
             writer.write("\nsent size = " + hosts.get(myIndex).getSent().size());
-            writer.write("\natomic integer value reached = " + packetId.get());
+            //writer.write("\natomic integer value reached = " + packetId.get());
+            writer.write("\ntotal messages delivered = " + deliveredCount);
             writer.close();
         } catch (IOException e) {
             e.printStackTrace();

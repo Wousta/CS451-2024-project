@@ -23,6 +23,7 @@ public class FairLossLink {
     private final Object sendLock = new Object(); // Lock for socketSend
     private final Object sendAckLock = new Object(); // Lock for socketSendAck
     // The size will be incremented if some packet exceeds the expected size
+    
     private AtomicInteger bufSize = new AtomicInteger(Packet.EXPECTED_SIZE);
     private PerfectLink perfectLink;
     ScheduledExecutorService executor;
@@ -47,6 +48,7 @@ public class FairLossLink {
             if(buf.length > bufSize.get()) {
                 bufSize.set(buf.length);
             }
+
             if(packet instanceof MsgPacket) {
                 synchronized (sendLock) {
                     socketSend.send(new DatagramPacket(
@@ -56,8 +58,7 @@ public class FairLossLink {
                         host.getPort()
                     ));
                 }
-            }
-            else {
+            } else {
                 synchronized (sendAckLock) {
                     socketSendAck.send(new DatagramPacket(
                         buf, 
@@ -67,6 +68,7 @@ public class FairLossLink {
                     ));
                 }
             }
+
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -79,20 +81,18 @@ public class FairLossLink {
      * @return the deserialized Message
      */
     public void deliver() {
-        while(true) {
-            int size = bufSize.get();
-            DatagramPacket packet = new DatagramPacket(new byte[size], size);
-            try {
-                socketReceive.receive(packet);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-
-            executor.execute(() -> perfectLink.deliver(packet.getData()));
+        int size = bufSize.get();
+        DatagramPacket packet = new DatagramPacket(new byte[size], size);
+        try {
+            socketReceive.receive(packet);
+        } catch (IOException e) {
+            e.printStackTrace();
         }
+
+        perfectLink.deliver(packet.getData());
     }
 
-    public synchronized void adjustBufSize() {
+    public void adjustBufSize() {
         int newSize = bufSize.get()*2;
 
         if(newSize > Packet.MAX_PACKET_SIZE) bufSize.set(Packet.MAX_PACKET_SIZE);

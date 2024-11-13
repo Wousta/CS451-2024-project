@@ -12,24 +12,33 @@ public abstract class Packet implements Serializable {
     public static final int EXPECTED_SIZE = 2356;
 
     protected final byte hostId;
-    protected final long packetId; // Serves as timestamp, since it is incremented by an atomic int each time a packet is created
-    protected long timeStamp;
+    protected int packetId; // Serves as timestamp, since it is incremented by an atomic int each time a packet is created
+    protected int timeStamp;
     protected byte lastHop;  // Last host Id that received the message
     protected byte targetHostId; // Used by stubbornLink to know to which host each packet has to be sent
 
-    protected Packet(byte hostId, byte targetHostId, Long packetId) {
+    protected Packet(byte hostId, byte targetHostId) {
         this.hostId = hostId;
         this.targetHostId = targetHostId;
-        this.packetId = packetId;
-        this.timeStamp = packetId;
     }
+
 
     public byte getHostId() {
         return hostId;
     }
 
-    public long getPacketId() {
+    public int getPacketId() {
         return packetId;
+    }
+
+    public void setPacketId(int packetId) {
+        this.packetId = packetId;
+    }
+
+    public void initIdAndTimesTamp(int initValue) {
+        this.packetId = initValue;
+        this.timeStamp = initValue;
+
     }
 
     public int getHostIndex() {
@@ -44,16 +53,20 @@ public abstract class Packet implements Serializable {
         this.lastHop = lastHop;
     }
 
-    public long getTimeStamp() {
+    public int getTimeStamp() {
         return timeStamp;
     }
 
-    public void setTimeStamp(Long timeStamp) {
+    public void setTimeStamp(int timeStamp) {
         this.timeStamp = timeStamp;
     }
 
     public byte getTargetHostId() {
         return targetHostId;
+    }
+
+    public void setTargetHostId(byte targetHostId) {
+        this.targetHostId = targetHostId;
     }
 
     public byte getTargetHostIndex() {

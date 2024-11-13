@@ -15,9 +15,6 @@ import cs451.parser.Parser;
 public class Main {
     private static Logger logger;
     private static ScheduledExecutorService executor = Executors.newScheduledThreadPool(Constants.N_THREADS);
-    private static final int FIFO = 1;
-    private static final int PERFECT_LINK = 2;
-    private static final int LATTICE = 3;
 
     private static void handleSignal() {
         //immediately stop network packet processing
@@ -53,7 +50,6 @@ public class Main {
         
         String config = parser.config();
         List<Host> hosts = parser.hosts();
-        Host thisHost = hosts.get(parser.myIndex());
         logger = new Logger(parser.output(), hosts, parser.myIndex());
 
         initSignalHandlers();
@@ -73,16 +69,15 @@ public class Main {
         // Summary of hosts, configuration, output files
         //printSummary(parser);
 
+        Scheduler scheduler = new Scheduler(parser, logger, executor, input);
         switch (input.length) {
-            case FIFO:
-                // Run fifo
+            case Constants.FIFO:
+                scheduler.runFIFOBroadcast();
                 break;
-            case PERFECT_LINK:
-                PPLScheduler scheduler = new PPLScheduler(parser, logger, executor, input);
-                if(input[1] == thisHost.getId()) scheduler.runPerfectReceiver();
-                else scheduler.runPerfectSender();
+            case Constants.PERFECT_LINK:
+                scheduler.runPerfectLinks();
                 break;
-            case LATTICE:
+            case Constants.LATTICE:
                 // Run Lattice
                 break;
             default:
