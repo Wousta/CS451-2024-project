@@ -17,6 +17,13 @@ public class MsgPacket extends Packet {
         super(hostId, (byte) 0); // Assuming a default value for destinationHostId
     }
 
+    public MsgPacket(MsgPacket packet, byte targetHostId) {
+        super(packet.hostId, targetHostId);
+        for(Message m : packet.getMessages()) {
+            messages.add(m);
+        }
+    }
+
     /**
      * Adds a message to the Packet's internal queue of messages.
      * @param msg the message to be added to the queue

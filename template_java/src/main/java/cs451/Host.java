@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.LinkedBlockingQueue;
 
 import cs451.packet.Packet;
@@ -38,7 +39,7 @@ public class Host {
      * Stores the sent packets that are going to be sent to this host.
      * The key is the PacketId.
      */
-    private ConcurrentHashMap<Integer,Packet> sent = new ConcurrentHashMap<>(16, 0.75f, Constants.N_THREADS);
+    private ConcurrentSkipListMap<Integer,Packet> sent = new ConcurrentSkipListMap<>();
 
     public boolean populate(String idString, String ipString, String portString) {
         try {

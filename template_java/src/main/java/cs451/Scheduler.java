@@ -7,7 +7,9 @@ import java.net.UnknownHostException;
 import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
 
+import cs451.broadcast.Broadcast;
 import cs451.broadcast.BEBroadcast;
+import cs451.broadcast.URBroadcast;
 import cs451.link.PerfectLink;
 import cs451.packet.Message;
 import cs451.packet.MsgPacket;
@@ -16,8 +18,6 @@ import cs451.parser.Logger;
 import cs451.parser.Parser;
 
 public class Scheduler {
-    private PerfectLink link;
-    private BEBroadcast bEBroadcast;
     private List<Host> hosts;
     private Host selfHost;
     private Logger logger;
@@ -38,8 +38,6 @@ public class Scheduler {
         selfHost.setSocketReceive(new DatagramSocket(selfHost.getPort(), InetAddress.getByName(selfHost.getIp())));
         selfHost.setOutputPath(parser.output());
 
-        link = new PerfectLink(selfHost, hosts, logger, executor);
-        bEBroadcast = new BEBroadcast(link, hosts, logger);
         loadBalancer = new LoadBalancer(hosts.size(), input[MSGS_TO_SEND_INDEX]);
     }
 
@@ -50,6 +48,7 @@ public class Scheduler {
         int msgsToSend = input[MSGS_TO_SEND_INDEX];
         int receiverId = input[RECEIVER_ID_INDEX];
         Host targeHost = hosts.get(receiverId - 1);
+        PerfectLink link = new PerfectLink(selfHost, hosts, logger, executor);
         MessageSender sender = new MessageSender(msgsToSend, targeHost, link);
         
         if(selfHost.getId() != receiverId) {
@@ -66,7 +65,9 @@ public class Scheduler {
 
     protected void runFIFOBroadcast() {
         int msgsToSend = input[MSGS_TO_SEND_INDEX];
-        MessageSender sender = new MessageSender(msgsToSend, link);
+        PerfectLink link = new PerfectLink(selfHost, hosts, logger, executor);
+        Broadcast broadcast = new BEBroadcast(link, hosts, logger);
+        MessageSender sender = new MessageSender(msgsToSend, broadcast);
         
         executor.execute(sender);
 
@@ -83,6 +84,7 @@ public class Scheduler {
         private int msgsToSend;
         private Host targetHost;
         private PerfectLink link;
+        private Broadcast beBroadcast;
 
         public MessageSender(int msgsToSend, Host targetHost, PerfectLink link){
             this.msgsToSend = msgsToSend;
@@ -90,9 +92,9 @@ public class Scheduler {
             this.targetHost = targetHost;
         }
 
-        public MessageSender(int msgsToSend, PerfectLink link){
+        public MessageSender(int msgsToSend, Broadcast broadcast){
             this.msgsToSend = msgsToSend;
-            this.link = link;
+            this.beBroadcast = broadcast;
         }
 
         // Adds up to 8 messages to a new packet and sends it to the receiver Host.
@@ -111,7 +113,7 @@ public class Scheduler {
             }
 
             if(input.length == Constants.FIFO) {
-                bEBroadcast.broadcast(packet);
+                beBroadcast.broadcast(packet);
             }
             else if(input.length == Constants.PERFECT_LINK) {
                 packet.setTargetHostId(targetHost.getId());
@@ -125,7 +127,7 @@ public class Scheduler {
             int msgsPerPacket = MsgPacket.MAX_MSGS;
             int iters = msgsToSend/msgsPerPacket; // Each packet can store up to 8 messages
             int lastIters = msgsToSend % msgsPerPacket; // Remaining messages
-            int maxSentSize = 128;//loadBalancer.getSentMaxSize();//132; // Maximum size of the sent messages data structure
+            int maxSentSize = 64;//loadBalancer.getSentMaxSize();//132; // Maximum size of the sent messages data structure
 
             for(int i = 0; i < iters; i++) {
                 // It waits before sending messages if sent size gets to a limit, to avoid consuming all memory.

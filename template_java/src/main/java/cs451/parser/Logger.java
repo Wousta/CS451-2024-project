@@ -10,8 +10,10 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 import cs451.Host;
+import cs451.packet.AcksPacket;
 import cs451.packet.Message;
 import cs451.packet.MsgPacket;
 import cs451.packet.Packet;
@@ -65,8 +67,19 @@ public class Logger {
             for(Host h : hosts) {
                 deliveredRemaining += h.getDelivered().size();
             }
+            AtomicInteger acksInSent = new AtomicInteger(0);
+            AtomicInteger msgsInSent = new AtomicInteger(0);
+            ConcurrentMap<Integer, Packet> sent = hosts.get(myIndex).getSent();
+            sent.forEach((id, packet) -> {
+                if(packet instanceof AcksPacket) {
+                    acksInSent.incrementAndGet();
+                }
+                else if(packet instanceof MsgPacket) {
+                    msgsInSent.incrementAndGet();
+                }
+            });
             writer.write("delivered size = " + deliveredRemaining);
-            writer.write("\nsent size = " + hosts.get(myIndex).getSent().size());
+            writer.write("\nsent size = " + sent.size() + " acks: " + acksInSent.get() + " msgs: " + msgsInSent.get());
             //writer.write("\natomic integer value reached = " + packetId.get());
             writer.write("\ntotal messages delivered = " + deliveredCount);
             writer.close();
