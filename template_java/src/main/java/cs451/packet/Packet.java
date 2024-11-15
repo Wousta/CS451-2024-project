@@ -19,6 +19,7 @@ public abstract class Packet implements Serializable {
 
     protected Packet(byte hostId, byte targetHostId) {
         this.hostId = hostId;
+        this.lastHop = hostId;
         this.targetHostId = targetHostId;
     }
 
@@ -47,6 +48,10 @@ public abstract class Packet implements Serializable {
 
     public int getLastHop() {
         return lastHop;
+    }
+
+    public int getLastHopIndex() {
+        return lastHop - 1;
     }
 
     public void setLastHop(byte lastHop) {

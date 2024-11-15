@@ -38,13 +38,15 @@ public class BEBroadcast implements Broadcast {
 
     /**
      * Triggered by PerfectLink when it delivers a message
-     * @param p the packet delivered by perfect links
+     * @param packet the packet delivered by perfect links
      */
     @Override
-    public void deliver(MsgPacket p) {
-        if(urBroadcast != null) urBroadcast.deliver(p);
+    public void deliver(MsgPacket packet) {
+        if(urBroadcast != null) {
+            urBroadcast.beBDeliver(packet);
+        } 
         else try {
-                logger.logPacket(p);
+                logger.logPacket(packet);
             } catch (ClassNotFoundException | IOException e) {
                 e.printStackTrace();
             }
