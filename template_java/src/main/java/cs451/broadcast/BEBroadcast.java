@@ -5,9 +5,7 @@ import java.util.List;
 
 import cs451.Host;
 import cs451.link.PerfectLink;
-import cs451.packet.Message;
 import cs451.packet.MsgPacket;
-import cs451.packet.Packet;
 import cs451.parser.Logger;
 
 public class BEBroadcast implements Broadcast {
