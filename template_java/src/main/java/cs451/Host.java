@@ -110,7 +110,7 @@ public class Host {
      * Returns the map of sent packets of this host. Key is the id of the host.
      * @return the ConcurrentLinkedQueue for concurrent access with the sent messages
      */
-    public ConcurrentMap<Integer, Packet> getSent() {
+    public ConcurrentSkipListMap<Integer, Packet> getSent() {
         return sent;
     }
 

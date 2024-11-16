@@ -24,6 +24,7 @@ public class FairLossLink {
     private final Object sendAckLock = new Object(); // Lock for socketSendAck
     // The size will be incremented if some packet exceeds the expected size
     
+    private AtomicInteger timesTamp = new AtomicInteger(1);
     private AtomicInteger bufSize = new AtomicInteger(Packet.EXPECTED_SIZE);
     private PerfectLink perfectLink;
     ScheduledExecutorService executor;
@@ -41,33 +42,42 @@ public class FairLossLink {
      * @param host target host that receives the message
      * @param msg data to send
      */
-    public void send(Host host, Packet packet) {
+    public synchronized void send(Host host, Packet packet) {
         try {
+            packet.setTimeStamp(timesTamp.getAndIncrement());
             byte[] buf = Packet.serialize(packet);
             //System.out.println("Buf length = " + buf.length);
             if(buf.length > bufSize.get()) {
                 bufSize.set(buf.length);
             }
 
-            if(packet instanceof MsgPacket) {
-                synchronized (sendLock) {
-                    socketSend.send(new DatagramPacket(
-                        buf, 
-                        buf.length, 
-                        host.getInetAddress(), 
-                        host.getPort()
-                    ));
-                }
-            } else {
-                synchronized (sendAckLock) {
-                    socketSendAck.send(new DatagramPacket(
-                        buf, 
-                        buf.length, 
-                        host.getInetAddress(), 
-                        host.getPort()
-                    ));
-                }
+            socketSend.send(new DatagramPacket(
+                buf, 
+                buf.length, 
+                host.getInetAddress(), 
+                host.getPort()
+            ));
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public synchronized void resend(Host host, Packet packet) {
+        try {
+            packet.setTimeStamp(timesTamp.getAndIncrement());
+            byte[] buf = Packet.serialize(packet);
+            //System.out.println("Buf length = " + buf.length);
+            if(buf.length > bufSize.get()) {
+                bufSize.set(buf.length);
             }
+
+            socketSendAck.send(new DatagramPacket(
+                buf, 
+                buf.length, 
+                host.getInetAddress(), 
+                host.getPort()
+            ));
 
         } catch (IOException e) {
             e.printStackTrace();

@@ -1,7 +1,10 @@
 package cs451.broadcast;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.List;
 import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.ConcurrentSkipListMap;
@@ -12,25 +15,37 @@ import cs451.packet.MsgPacket;
 import cs451.parser.Logger;
 
 public class URBroadcast implements Broadcast {
+    private final int hostsSize;
     private Host selfHost;
     private List<Host> hosts;
     private Logger logger;
     private BEBroadcast beBroadcast;
-    private HashMap<Integer, Boolean> delivered = new HashMap<>();
-    private HashMap<Integer, MsgPacket> pending = new HashMap<>();
-    private ConcurrentNavigableMap<Integer, boolean[]> acksMap = new ConcurrentSkipListMap<>();
+    private List<Map<Integer, Boolean>> urBdeliveredList;
+    private List<Map<Integer, Boolean>> urBpendingList;
+    private List<Map<Integer, boolean[]>> acksMapList;
 
     public URBroadcast(PerfectLink link, Host selfHost, List<Host> hosts, Logger logger) {
+        this.hostsSize = hosts.size();
         this.selfHost = selfHost;
         this.hosts = hosts;
         this.logger = logger;
         this.beBroadcast = new BEBroadcast(link, hosts, logger);
         this.beBroadcast.setUrBroadcast(this);
+
+        urBdeliveredList = new ArrayList<>(hostsSize);
+        urBpendingList = new ArrayList<>(hostsSize);
+        acksMapList = new ArrayList<>(hostsSize);
+
+        for(int i = 0; i < hostsSize; i++) {
+            urBdeliveredList.add(new HashMap<>());
+            urBpendingList.add(new HashMap<>());
+            acksMapList.add(new HashMap<>());
+        }
     }
-    
+
 
     public void broadcast(MsgPacket packet) {
-        pending.put(packet.getPacketId(), packet);
+        urBpendingList.get(packet.getHostIndex()).put(packet.getPacketId(), true);
         beBroadcast.broadcast(packet);
     }
 
@@ -40,12 +55,17 @@ public class URBroadcast implements Broadcast {
      * @param packet the packet delivered by perfect links
      */
     public void beBDeliver(MsgPacket packet) {
+
         int packetId = packet.getPacketId();
+        int orignalSenderIndex = packet.getHostIndex();
+        Map<Integer, Boolean> urBdelivered = urBdeliveredList.get(orignalSenderIndex);
+        Map<Integer, Boolean> urBpending = urBpendingList.get(orignalSenderIndex);
+        Map<Integer, boolean[]> acksMap = acksMapList.get(orignalSenderIndex);
         boolean[] pendingAcks = acksMap.get(packetId);
         
         // Set to true that we have received this packet from host[i]
         if(pendingAcks == null) {
-            boolean[] acks = new boolean[hosts.size()];
+            boolean[] acks = new boolean[hostsSize];
             acks[packet.getLastHopIndex()] = true;
             acksMap.put(packetId, acks);
         } else {
@@ -53,13 +73,15 @@ public class URBroadcast implements Broadcast {
         }
 
         // Add to pending messages if first time and relay message
-        if(!pending.containsKey(packetId)) {
-            pending.put(packetId, packet);
+        if(!urBpending.containsKey(packetId)) {
+            urBpending.put(packetId, true);
             packet.setLastHop(selfHost.getId());
-            beBroadcast.broadcast(packet);
+            System.out.println("urbpending of " + orignalSenderIndex + " = " + urBpending.keySet());
+            beBroadcast.reBroadcast(packet);
         }
-        else if(canDeliver(packet) && !delivered.containsKey(packetId)) {
-            delivered.put(packetId, true);
+        else if(canDeliver(packet) && !urBdelivered.containsKey(packetId)) {
+            logger.addLine("ayyyyy");
+            urBdelivered.put(packetId, true);
             deliver(packet);
         }
     }
@@ -76,7 +98,7 @@ public class URBroadcast implements Broadcast {
 
     private boolean canDeliver(MsgPacket packet) {
         int ackedHosts = 0;
-        boolean[] pendingAcks = acksMap.get(packet.getPacketId());
+        boolean[] pendingAcks = acksMapList.get(packet.getHostIndex()).get(packet.getPacketId());
         
         for(int i = 0; i < pendingAcks.length; i++) {
             if(pendingAcks[i]) {
@@ -84,7 +106,10 @@ public class URBroadcast implements Broadcast {
             }
         }
 
-        return ackedHosts > hosts.size() / 2;
+        boolean res = ackedHosts > hostsSize / 2;
+        logger.addLine("checking candeliver " + res + " pendingAcks: " + Arrays.toString(pendingAcks));
+
+        return res;
     }
 
 }

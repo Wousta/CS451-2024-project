@@ -34,6 +34,12 @@ public class BEBroadcast implements Broadcast {
         }
     }
 
+    public void reBroadcast(MsgPacket packet) {
+        for(Host host : hosts) {
+            link.send(host, packet);
+        }
+    }
+
     /**
      * Triggered by PerfectLink when it delivers a message
      * @param packet the packet delivered by perfect links

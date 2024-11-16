@@ -56,7 +56,6 @@ public class Logger {
         try {
             writer.write(msg + "\n");
         } catch (IOException e) {
-            System.out.println("error aqui");
             e.printStackTrace();
         }
     }

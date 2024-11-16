@@ -9,6 +9,7 @@ import java.util.concurrent.ScheduledExecutorService;
 
 import cs451.broadcast.BEBroadcast;
 import cs451.broadcast.Broadcast;
+import cs451.broadcast.URBroadcast;
 import cs451.link.PerfectLink;
 import cs451.packet.Message;
 import cs451.packet.MsgPacket;
@@ -65,6 +66,7 @@ public class Scheduler {
     protected void runFIFOBroadcast() {
         int msgsToSend = input[MSGS_TO_SEND_INDEX];
         PerfectLink link = new PerfectLink(selfHost, hosts, logger, executor);
+        //Broadcast broadcast = new URBroadcast(link, selfHost, hosts, logger);
         Broadcast broadcast = new BEBroadcast(link, hosts, logger);
         MessageSender sender = new MessageSender(msgsToSend, broadcast);
         
@@ -83,7 +85,7 @@ public class Scheduler {
         private int msgsToSend;
         private Host targetHost;
         private PerfectLink link;
-        private Broadcast beBroadcast;
+        private Broadcast broadcast;
 
         public MessageSender(int msgsToSend, Host targetHost, PerfectLink link){
             this.msgsToSend = msgsToSend;
@@ -93,7 +95,7 @@ public class Scheduler {
 
         public MessageSender(int msgsToSend, Broadcast broadcast){
             this.msgsToSend = msgsToSend;
-            this.beBroadcast = broadcast;
+            this.broadcast = broadcast;
         }
 
         // Adds up to 8 messages to a new packet and sends it to the receiver Host.
@@ -112,7 +114,7 @@ public class Scheduler {
             }
 
             if(input.length == Constants.FIFO) {
-                beBroadcast.broadcast(packet);
+                broadcast.broadcast(packet);
             }
             else if(input.length == Constants.PERFECT_LINK) {
                 packet.setTargetHostId(targetHost.getId());
@@ -126,13 +128,13 @@ public class Scheduler {
             int msgsPerPacket = MsgPacket.MAX_MSGS;
             int iters = msgsToSend/msgsPerPacket; // Each packet can store up to 8 messages
             int lastIters = msgsToSend % msgsPerPacket; // Remaining messages
-            int maxSentSize = 64;//loadBalancer.getSentMaxSize();//132; // Maximum size of the sent messages data structure
+            int maxSentSize = 32;//loadBalancer.getSentMaxSize();//132; // Maximum size of the sent messages data structure
 
             for(int i = 0; i < iters; i++) {
                 // It waits before sending messages if sent size gets to a limit, to avoid consuming all memory.
                 while(selfHost.getSent().size() >= maxSentSize) {
                     try {
-                        Thread.sleep(100);
+                        Thread.sleep(200);
                     } catch (InterruptedException e) {
                         System.err.println("Thread stopped while waiting to send more packets, this is expected if program is stopped mid execution");
                         e.printStackTrace();

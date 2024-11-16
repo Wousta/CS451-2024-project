@@ -12,7 +12,7 @@ public abstract class Packet implements Serializable {
     public static final int EXPECTED_SIZE = 2356;
 
     protected final byte hostId;
-    protected int packetId; // Serves as timestamp, since it is incremented by an atomic int each time a packet is created
+    protected int packetId; 
     protected int timeStamp;
     protected byte lastHop;  // Last host Id that received the message
     protected byte targetHostId; // Used by stubbornLink to know to which host each packet has to be sent

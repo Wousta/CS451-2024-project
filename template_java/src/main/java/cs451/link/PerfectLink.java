@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -28,10 +29,8 @@ public class PerfectLink {
     private Logger logger;
     private Host selfHost;
     private List<Host> hosts;
-    private ConcurrentMap<Integer,Packet> sent; 
-    private Queue<AcksPacket> acksFromReceiver = new LinkedList<>();
+    private Queue<AcksPacket> acksFromReceivers = new LinkedList<>();
     private AtomicInteger idCounter = new AtomicInteger(1);
-    private AtomicInteger timesTamp = new AtomicInteger(1);
     private Lock lock = new ReentrantLock();
 
     public PerfectLink(Host selfHost, List<Host> hosts, Logger logger, ScheduledExecutorService executor){
@@ -41,25 +40,23 @@ public class PerfectLink {
             e.printStackTrace();
         }
 
-        sent = selfHost.getSent();
-
         this.selfHost = selfHost;
         this.hosts = hosts;
         this.logger = logger;
 
         AckBuildAndSend ackBuildAndSend = new AckBuildAndSend();
-        //if(selfHost.getId() == 1) // TODO:  remember to comment when testing broadcast
+        if(selfHost.getId() == 1) // TODO:  remember to comment when testing broadcast
             executor.scheduleWithFixedDelay(ackBuildAndSend, 50, 100, TimeUnit.MILLISECONDS);
 
         // Resend operation of stubbornLink that guarantees eventual delivery between correct processes.
         executor.scheduleWithFixedDelay(() -> {
             try {
                 if(lock.tryLock(500, TimeUnit.MILLISECONDS)) {
-                    sent.forEach((id, packet) -> {
-                        packet.setTimeStamp(timesTamp.getAndIncrement());
-                        fll.send(hosts.get(packet.getTargetHostIndex()), packet);
-                    });
-
+                    for(Host host : hosts) {
+                        host.getSent().forEach((id, packet) -> {
+                            fll.resend(hosts.get(packet.getTargetHostIndex()), packet);
+                        });
+                    }
                     lock.unlock();
                 }
             } catch (InterruptedException e) {
@@ -85,13 +82,15 @@ public class PerfectLink {
     }
 
 
-    public void send(Host h, Packet p) {
-        p.setPacketId(idCounter.getAndIncrement());
-        p.setTimeStamp(timesTamp.getAndIncrement());
-        fll.send(h, p);
+    public void send(Host host, Packet packet) {
+        if(packet.getPacketId() == 0) {
+            packet.setPacketId(idCounter.getAndIncrement());
+        }
+        
+        fll.send(host, packet);
 
         try {
-            sent.put(p.getPacketId(), p);
+            host.getSent().put(packet.getPacketId(), packet);
         } catch(Exception e) {
             e.printStackTrace();
         }
@@ -107,7 +106,7 @@ public class PerfectLink {
      * @param p the ack ok packet to be sent
      */
     public void sendAckOk(Host h, Packet p) {
-        fll.send(h, p);
+        fll.resend(h, p);
     }
 
     public void deliver(byte[] data) {
@@ -165,10 +164,13 @@ public class PerfectLink {
 
     private void handleAckFromReceiver(AcksPacket packet) {
         BlockingQueue<Integer> acksQueue = packet.getAcks();
+        Host receiver = hosts.get(packet.getHostIndex());
+        ConcurrentSkipListMap<Integer,Packet> receiverSent = receiver.getSent();
+
         AcksPacket ackOk = new AcksPacket(selfHost.getId(), packet.getHostId());
 
         for(int packetId : packet.getAcks()) {
-            if(sent.remove(packetId) == null) {
+            if(receiverSent.remove(packetId) == null) {
                 break;
             }
         }
@@ -176,15 +178,14 @@ public class PerfectLink {
         ackOk.setPacketId(packet.getPacketId());
         ackOk.setAckStep(AcksPacket.ACK_SENDER);
         ackOk.setAcks(acksQueue);
-        acksFromReceiver.add(ackOk);
+        acksFromReceivers.add(ackOk);
         
         try {
             if(lock.tryLock(200, TimeUnit.MILLISECONDS)) {
 
-                while(!acksFromReceiver.isEmpty()) {
-                    AcksPacket acksPacket = acksFromReceiver.poll();
+                while(!acksFromReceivers.isEmpty()) {
+                    AcksPacket acksPacket = acksFromReceivers.poll();
 
-                    acksPacket.setTimeStamp(timesTamp.getAndIncrement());
                     sendAckOk(hosts.get(acksPacket.getTargetHostIndex()), acksPacket);
                 }
 
@@ -208,12 +209,12 @@ public class PerfectLink {
         }
 
         for(int packId : acksQueue) {
-            if(delivered.remove(packId) == null) {
+            if(delivered.remove(packId) == null) { 
                 break;
             }
         }
         
-        sent.remove(packet.getPacketId());
+        host.getSent().remove(packet.getPacketId());
     }
 
 
