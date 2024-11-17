@@ -19,7 +19,7 @@ public class FairLossLink {
 
     private final DatagramSocket socketReceive;
     private final DatagramSocket socketSend;
-    private final DatagramSocket socketSendAck;
+    private final DatagramSocket socketSendAckOk;
     private final Object sendLock = new Object(); // Lock for socketSend
     private final Object sendAckLock = new Object(); // Lock for socketSendAck
     // The size will be incremented if some packet exceeds the expected size
@@ -32,7 +32,7 @@ public class FairLossLink {
     public FairLossLink(DatagramSocket socketReceive,  ScheduledExecutorService executor, PerfectLink perfectLink) throws SocketException {
         this.socketReceive = socketReceive;
         this.socketSend = new DatagramSocket();
-        this.socketSendAck = new DatagramSocket();
+        this.socketSendAckOk = new DatagramSocket();
         this.executor = executor;
         this.perfectLink = perfectLink;
     }
@@ -63,7 +63,16 @@ public class FairLossLink {
         }
     }
 
-    public synchronized void resend(Host host, Packet packet) {
+    /**
+     * When sending ack ok the packet should not be put in sent messages for resending.
+     * This method is equivalent to send() except it does not store the message in sent map.
+     * The reason is that if this ack ok does not arrive, the ack message will be resent from the receiver,
+     * But if this ack ok is kept in sent messages, it would need to be cleaned and therefore needs another
+     * ack message for the ack ok message, starting an infinite loop of acks that need to be acked.
+     * @param host the target host
+     * @param packet the ack ok packet to be sent
+     */
+    public synchronized void sendAckOk(Host host, Packet packet) {
         try {
             packet.setTimeStamp(timesTamp.getAndIncrement());
             byte[] buf = Packet.serialize(packet);
@@ -72,7 +81,7 @@ public class FairLossLink {
                 bufSize.set(buf.length);
             }
 
-            socketSendAck.send(new DatagramPacket(
+            socketSendAckOk.send(new DatagramPacket(
                 buf, 
                 buf.length, 
                 host.getInetAddress(), 

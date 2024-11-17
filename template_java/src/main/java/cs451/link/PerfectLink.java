@@ -33,7 +33,6 @@ public class PerfectLink {
     private List<Host> hosts;
     private BlockingQueue<AcksPacket> acksFromReceivers = new LinkedBlockingQueue<>();
     private AtomicInteger idCounter = new AtomicInteger(1);
-    //private Lock lock = new ReentrantLock();
     private List<ReentrantLock> sentMapsLocks;
 
     public PerfectLink(Host selfHost, List<Host> hosts, Logger logger, ScheduledExecutorService executor){
@@ -62,24 +61,11 @@ public class PerfectLink {
                 ReentrantLock lock = sentMapsLocks.get(host.getIndex());
 
                 if(lock.tryLock()) {
-                    host.getSent().forEach((id, packet) -> fll.resend(hosts.get(packet.getTargetHostIndex()), packet));
+                    host.getSent().forEach((id, packet) -> fll.send(hosts.get(packet.getTargetHostIndex()), packet));
                     lock.unlock();
                 }        
             }
 
-            while(!acksFromReceivers.isEmpty()) {
-                AcksPacket acksPacket = acksFromReceivers.poll();
-
-                sendAckOk(hosts.get(acksPacket.getTargetHostIndex()), acksPacket);
-            }
-            // try {
-            //     if(lock.tryLock(500, TimeUnit.MILLISECONDS)) {
-                    
-            //         lock.unlock();
-            //     }
-            // } catch (InterruptedException e) {
-            //     Thread.currentThread().interrupt();
-            // }
         }, 150, 100, TimeUnit.MILLISECONDS);
         
     }
@@ -110,19 +96,6 @@ public class PerfectLink {
         } catch(Exception e) {
             e.printStackTrace();
         }
-    }
-
-    /**
-     * When sending ack ok the packet should not be put in sent messages for resending.
-     * This method is equivalent to send() except it does not store the message in sent map.
-     * The reason is that if this ack ok does not arrive, the ack message will be resent from the receiver,
-     * But if this ack ok is kept in sent messages, it would need to be cleaned and therefore needs another
-     * ack message for the ack ok message, starting an infinite loop of acks that need to be acked.
-     * @param h the target host
-     * @param p the ack ok packet to be sent
-     */
-    public void sendAckOk(Host h, Packet p) {
-        fll.resend(h, p);
     }
 
     public void deliver(byte[] data) {
@@ -199,27 +172,12 @@ public class PerfectLink {
         }
         lock.unlock();
 
-        if(isNewAck) {
-            ackOk.setAcks(acksQueue);
-        }
+        ackOk.setAcks(acksQueue);
         ackOk.setPacketId(packet.getPacketId());
         ackOk.setAckStep(AcksPacket.ACK_SENDER);
-        acksFromReceivers.add(ackOk);
-        
-        // try {
-        //     if(lock.tryLock(200, TimeUnit.MILLISECONDS)) {
+        //acksFromReceivers.add(ackOk);
 
-        //         while(!acksFromReceivers.isEmpty()) {
-        //             AcksPacket acksPacket = acksFromReceivers.poll();
-
-        //             sendAckOk(hosts.get(acksPacket.getTargetHostIndex()), acksPacket);
-        //         }
-
-        //         lock.unlock();
-        //     }
-        // } catch (InterruptedException e) {
-        //     Thread.currentThread().interrupt();
-        // }
+        fll.sendAckOk(hosts.get(ackOk.getTargetHostIndex()), ackOk);
     }
 
     private void handleAckFromSender(AcksPacket packet) {

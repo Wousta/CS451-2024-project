@@ -36,6 +36,7 @@ public class BEBroadcast implements Broadcast {
 
     public void reBroadcast(MsgPacket packet) {
         for(Host host : hosts) {
+            packet.setTargetHostId(host.getId());
             link.send(host, packet);
         }
     }
