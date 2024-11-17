@@ -31,7 +31,6 @@ public class PerfectLink {
     private Logger logger;
     private Host selfHost;
     private List<Host> hosts;
-    private BlockingQueue<AcksPacket> acksFromReceivers = new LinkedBlockingQueue<>();
     private AtomicInteger idCounter = new AtomicInteger(1);
     private List<ReentrantLock> sentMapsLocks;
 
@@ -155,19 +154,13 @@ public class PerfectLink {
         BlockingQueue<Integer> acksQueue = packet.getAcks();
         Host receiver = hosts.get(packet.getHostIndex());
         ConcurrentSkipListMap<Integer,Packet> receiverSent = receiver.getSent();
-
         AcksPacket ackOk = new AcksPacket(selfHost.getId(), packet.getHostId());
         ReentrantLock lock = sentMapsLocks.get(receiver.getIndex());
 
         lock.lock();
-        boolean isNewAck = true;
         for(int packetId : packet.getAcks()) {
-            if(!isNewAck && receiverSent.get(packetId) != null) {
-                logger.addLine("PACKET WAS NOT NULL: " + packetId);
-            }
-            else if(receiverSent.remove(packetId) == null) {
-                isNewAck = false;
-                //break;
+            if(receiverSent.remove(packetId) == null) {
+                break;
             }
         }
         lock.unlock();
@@ -175,7 +168,6 @@ public class PerfectLink {
         ackOk.setAcks(acksQueue);
         ackOk.setPacketId(packet.getPacketId());
         ackOk.setAckStep(AcksPacket.ACK_SENDER);
-        //acksFromReceivers.add(ackOk);
 
         fll.sendAckOk(hosts.get(ackOk.getTargetHostIndex()), ackOk);
     }

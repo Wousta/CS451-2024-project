@@ -9,7 +9,6 @@ import java.util.concurrent.ScheduledExecutorService;
 
 import cs451.broadcast.BEBroadcast;
 import cs451.broadcast.Broadcast;
-import cs451.broadcast.URBroadcast;
 import cs451.link.PerfectLink;
 import cs451.packet.Message;
 import cs451.packet.MsgPacket;
@@ -44,7 +43,6 @@ public class Scheduler {
 
     // Sends messages to one host, receives acks from that host, sends back ack ok.
     protected void runPerfectLinks() {
-        System.out.println("Running perfect");
         int msgsToSend = input[MSGS_TO_SEND_INDEX];
         int receiverId = input[RECEIVER_ID_INDEX];
         Host targeHost = hosts.get(receiverId - 1);

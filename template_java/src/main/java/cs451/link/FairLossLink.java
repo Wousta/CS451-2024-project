@@ -20,8 +20,6 @@ public class FairLossLink {
     private final DatagramSocket socketReceive;
     private final DatagramSocket socketSend;
     private final DatagramSocket socketSendAckOk;
-    private final Object sendLock = new Object(); // Lock for socketSend
-    private final Object sendAckLock = new Object(); // Lock for socketSendAck
     // The size will be incremented if some packet exceeds the expected size
     
     private AtomicInteger timesTamp = new AtomicInteger(1);
