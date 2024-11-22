@@ -21,6 +21,8 @@ public class URBroadcast implements Broadcast {
     private Host selfHost;
     private List<Host> hosts;
     private Logger logger;
+    private FifoURBroadcast fifoURBroadcast;
+
     private List<Map<Integer, Boolean>> deliveredList;
     private List<ConcurrentHashMap<TupleKey, Boolean>> pendingList;
     private List<Map<Integer, BitSet>> acksMapList;
@@ -43,6 +45,11 @@ public class URBroadcast implements Broadcast {
             pendingList.add(new ConcurrentHashMap<>());
             acksMapList.add(new HashMap<>());
         }
+    }
+
+
+    public void setFifoURBroadcast(FifoURBroadcast fifoURBroadcast) {
+        this.fifoURBroadcast = fifoURBroadcast;
     }
 
 
@@ -113,10 +120,14 @@ public class URBroadcast implements Broadcast {
 
 
     public void deliver(MsgPacket packet) {
-        try {
-            logger.logPacket(packet);
-        } catch (ClassNotFoundException | IOException e) {
-            e.printStackTrace();
+        if(fifoURBroadcast != null) {
+            fifoURBroadcast.deliver(packet);
+        } else {
+            try {
+                logger.logPacket(packet);
+            } catch (ClassNotFoundException | IOException e) {
+                e.printStackTrace();
+            }
         }
     }
 

@@ -31,7 +31,7 @@ public class PerfectLink {
     private AtomicInteger idCounter;
     private List<ReentrantLock> sentMapsLocks;
 
-    public PerfectLink(Host selfHost, List<Host> hosts, AtomicInteger idCounter, Logger logger, ScheduledExecutorService executor){
+    public PerfectLink(Host selfHost, List<Host> hosts, AtomicInteger idCounter, Logger logger, ScheduledExecutorService executor) {
         try {
             fll = new FairLossLink(selfHost.getSocketReceive(), executor, this);
         } catch (SocketException e) {
