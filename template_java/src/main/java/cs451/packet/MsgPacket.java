@@ -1,5 +1,6 @@
 package cs451.packet;
 
+import java.util.BitSet;
 import java.util.LinkedList;
 import java.util.Queue;
 import java.util.stream.Collectors;
@@ -8,17 +9,19 @@ public class MsgPacket extends Packet {
 
     public static final int MAX_MSGS = 8;
     private final Queue<Message> messages = new LinkedList<>();
+    private final BitSet alreadyDelivered;
+    private final int originalId;
 
-    public MsgPacket(byte hostId, byte targetHostId) {
-        super(hostId, targetHostId);
-    }
-
-    public MsgPacket(byte hostId) {
+    public MsgPacket(byte hostId, int originalId, BitSet alreadyDelivered) {
         super(hostId, (byte) 0); // Assuming a default value for destinationHostId
+        this.originalId = originalId;
+        this.alreadyDelivered = alreadyDelivered;
     }
 
     public MsgPacket(MsgPacket packet, byte targetHostId) {
         super(packet.hostId, targetHostId);
+        originalId = packet.getOriginalId();
+        alreadyDelivered = packet.getAlreadyDelivered();
         for(Message m : packet.getMessages()) {
             messages.add(m);
         }
@@ -39,7 +42,16 @@ public class MsgPacket extends Packet {
         return messages;
     }
 
+    public BitSet getAlreadyDelivered() {
+        return alreadyDelivered;
+    }
+
+    public int getOriginalId() {
+        return originalId;
+    }
+
     /////////////////////////////////////////////////////////////
+
 
     @Override
     public String toString() {

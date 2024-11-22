@@ -18,7 +18,7 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 import cs451.Host;
-import cs451.broadcast.BEBroadcast;
+import cs451.broadcast.URBroadcast;
 import cs451.packet.AcksPacket;
 import cs451.packet.MsgPacket;
 import cs451.packet.Packet;
@@ -27,14 +27,14 @@ import cs451.parser.Logger;
 public class PerfectLink {
 
     private FairLossLink fll;
-    private BEBroadcast beBroadcast;
+    private URBroadcast urBroadcast;
     private Logger logger;
     private Host selfHost;
     private List<Host> hosts;
-    private AtomicInteger idCounter = new AtomicInteger(1);
+    private AtomicInteger idCounter;
     private List<ReentrantLock> sentMapsLocks;
 
-    public PerfectLink(Host selfHost, List<Host> hosts, Logger logger, ScheduledExecutorService executor){
+    public PerfectLink(Host selfHost, List<Host> hosts, AtomicInteger idCounter, Logger logger, ScheduledExecutorService executor){
         try {
             fll = new FairLossLink(selfHost.getSocketReceive(), executor, this);
         } catch (SocketException e) {
@@ -43,6 +43,7 @@ public class PerfectLink {
 
         this.selfHost = selfHost;
         this.hosts = hosts;
+        this.idCounter = idCounter;
         this.logger = logger;
 
         sentMapsLocks = new ArrayList<>(hosts.size());
@@ -75,27 +76,27 @@ public class PerfectLink {
     }
 
 
-    public BEBroadcast getBEBroadcast() {
-        return beBroadcast;
+    public URBroadcast getBEBroadcast() {
+        return urBroadcast;
     }
 
 
-    public void setBEBroadcast(BEBroadcast beBroadcast) {
-        this.beBroadcast = beBroadcast;
+    public void setURBroadcast(URBroadcast beBroadcast) {
+        this.urBroadcast = beBroadcast;
     }
 
 
     public void send(Host host, Packet packet) {
-        if(packet.getPacketId() == 0) {
-            packet.setPacketId(idCounter.getAndIncrement());
-        }
+        packet.setPacketId(idCounter.getAndIncrement());
 
         try {
+            packet.setLastHop(selfHost.getId());
             host.getSent().put(packet.getPacketId(), packet);
         } catch(Exception e) {
             e.printStackTrace();
         }
     }
+
 
     public void deliver(byte[] data) {
         try {
@@ -117,7 +118,7 @@ public class PerfectLink {
         MsgPacket packet = (MsgPacket)Packet.deSerialize(data);
         int packetId = packet.getPacketId();
         int senderTimeStamp = packet.getTimeStamp();
-        int senderIndex = packet.getHostIndex();
+        int senderIndex = packet.getLastHopIndex();
 
         Host sender = hosts.get(senderIndex);
         int lastTimeStamp = sender.getLastTimeStamp();
@@ -130,8 +131,8 @@ public class PerfectLink {
             // Add id of packet to pending packets to be acked, we only send Ids for acking.
             sender.getPendingAcks().add(packetId);
 
-            if(beBroadcast != null) {
-                beBroadcast.deliver(packet);
+            if(urBroadcast != null) {
+                urBroadcast.beBDeliver(packet);
             } else {
                 logger.logPacket(packet);
             }
@@ -155,8 +156,8 @@ public class PerfectLink {
         Host receiver = hosts.get(packet.getHostIndex());
         ConcurrentSkipListMap<Integer,Packet> receiverSent = receiver.getSent();
         AcksPacket ackOk = new AcksPacket(selfHost.getId(), packet.getHostId());
-        ReentrantLock lock = sentMapsLocks.get(receiver.getIndex());
 
+        ReentrantLock lock = sentMapsLocks.get(receiver.getIndex());
         lock.lock();
         for(int packetId : packet.getAcks()) {
             if(receiverSent.remove(packetId) == null) {
@@ -199,7 +200,7 @@ public class PerfectLink {
         // Extracts from waiting acks queue and puts them into a new acks queue ready to be sent.
         private BlockingQueue<Integer> buildAckQueue(BlockingQueue<Integer> pendingAcks) {
             int count = 0;
-            int acksToAdd = 128;//loadBalancer.getAcksToAdd();
+            int acksToAdd = 32;//loadBalancer.getAcksToAdd();
             BlockingQueue<Integer> ackQueueToSend = new LinkedBlockingDeque<>();
 
             while(!pendingAcks.isEmpty() && count < acksToAdd) {

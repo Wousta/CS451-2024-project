@@ -3,85 +3,113 @@ package cs451.broadcast;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.BitSet;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 
 import cs451.Host;
+import cs451.TupleKey;
 import cs451.link.PerfectLink;
 import cs451.packet.MsgPacket;
 import cs451.parser.Logger;
 
 public class URBroadcast implements Broadcast {
+
     private final int hostsSize;
+    private PerfectLink link;
     private Host selfHost;
     private List<Host> hosts;
     private Logger logger;
-    private BEBroadcast beBroadcast;
-    private List<Map<Integer, Boolean>> urBdeliveredList;
-    private List<Map<Integer, Boolean>> urBpendingList;
-    private List<Map<Integer, boolean[]>> acksMapList;
+    private List<Map<Integer, Boolean>> deliveredList;
+    private List<ConcurrentHashMap<TupleKey, Boolean>> pendingList;
+    private List<Map<Integer, BitSet>> acksMapList;
 
     public URBroadcast(PerfectLink link, Host selfHost, List<Host> hosts, Logger logger) {
         this.hostsSize = hosts.size();
+        this.link = link;
+        this.link.setURBroadcast(this);
         this.selfHost = selfHost;
         this.hosts = hosts;
         this.logger = logger;
-        this.beBroadcast = new BEBroadcast(link, hosts, logger);
-        this.beBroadcast.setUrBroadcast(this);
+        this.logger.setUrBroadcast(this);
 
-        urBdeliveredList = new ArrayList<>(hostsSize);
-        urBpendingList = new ArrayList<>(hostsSize);
+        deliveredList = new ArrayList<>(hostsSize);
+        pendingList = new ArrayList<>(hostsSize);
         acksMapList = new ArrayList<>(hostsSize);
 
         for(int i = 0; i < hostsSize; i++) {
-            urBdeliveredList.add(new HashMap<>());
-            urBpendingList.add(new HashMap<>());
+            deliveredList.add(new HashMap<>());
+            pendingList.add(new ConcurrentHashMap<>());
             acksMapList.add(new HashMap<>());
         }
     }
 
 
-    public void broadcast(MsgPacket packet) {
-        urBpendingList.get(packet.getHostIndex()).put(packet.getPacketId(), true);
-        beBroadcast.broadcast(packet);
+    public List<Map<Integer, Boolean>> getDeliveredList() {
+        return deliveredList;
     }
 
 
-      /**
+    public List<ConcurrentHashMap<TupleKey, Boolean>> getPendingList() {
+        return pendingList;
+    }
+
+
+    public List<Map<Integer, BitSet>> getAcksMapList() {
+        return acksMapList;
+    }
+
+
+    public void broadcast(MsgPacket basePacket) {
+        TupleKey origin = new TupleKey(selfHost.getId(), basePacket.getOriginalId());
+        pendingList.get(selfHost.getIndex()).put(origin, true);
+
+        beBroadcast(basePacket);
+    }
+
+    public void beBroadcast(MsgPacket basePacket) {
+        for(Host host : hosts) {
+            MsgPacket packet = new MsgPacket(basePacket, host.getId());
+            link.send(host, packet);
+        }
+    }
+
+
+    /**
      * Triggered by PerfectLink when it delivers a message
      * @param packet the packet delivered by perfect links
      */
     public void beBDeliver(MsgPacket packet) {
 
-        int packetId = packet.getPacketId();
-        int orignalSenderIndex = packet.getHostIndex();
-        Map<Integer, Boolean> urBdelivered = urBdeliveredList.get(orignalSenderIndex);
-        Map<Integer, Boolean> urBpending = urBpendingList.get(orignalSenderIndex);
-        Map<Integer, boolean[]> acksMap = acksMapList.get(orignalSenderIndex);
-        boolean[] pendingAcks = acksMap.get(packetId);
+        int ogPacketId = packet.getOriginalId();
+        int ogSenderIndex = packet.getHostIndex();
+        int lastHopIndex = packet.getLastHopIndex();
+        Map<Integer, Boolean> delivered = deliveredList.get(ogSenderIndex);
+        Map<TupleKey, Boolean> pending = pendingList.get(ogSenderIndex);
+
+        Map<Integer, BitSet> acksMap = acksMapList.get(ogSenderIndex);
+        BitSet pendingAcks = acksMap.get(ogPacketId);
         
-        // Set to true that we have received this packet from host[i]
+        packet.getAlreadyDelivered().set(lastHopIndex);
         if(pendingAcks == null) {
-            boolean[] acks = new boolean[hostsSize];
-            acks[packet.getLastHopIndex()] = true;
-            acksMap.put(packetId, acks);
+            BitSet acks = new BitSet(hostsSize);
+            acks.or(packet.getAlreadyDelivered());
+            acksMap.put(ogPacketId, acks);
         } else {
-            pendingAcks[packet.getLastHopIndex()] = true;
+            pendingAcks.or(packet.getAlreadyDelivered());
         }
 
-        // Add to pending messages if first time and relay message
-        if(!urBpending.containsKey(packetId)) {
-            urBpending.put(packetId, true);
-            packet.setLastHop(selfHost.getId());
-            System.out.println("urbpending of " + orignalSenderIndex + " = " + urBpending.keySet());
-            beBroadcast.reBroadcast(packet);
+        TupleKey key = new TupleKey(packet.getHostId(), ogPacketId);
+        if(!pending.containsKey(key)) {
+            pending.put(key, true);
+            beBroadcast(packet);
         }
-        else if(canDeliver(packet) && !urBdelivered.containsKey(packetId)) {
-            logger.addLine("ayyyyy");
-            urBdelivered.put(packetId, true);
+        else if(canDeliver(packet) && !delivered.containsKey(ogPacketId)) {
+            delivered.put(ogPacketId, true);
             deliver(packet);
         }
     }
@@ -98,18 +126,15 @@ public class URBroadcast implements Broadcast {
 
     private boolean canDeliver(MsgPacket packet) {
         int ackedHosts = 0;
-        boolean[] pendingAcks = acksMapList.get(packet.getHostIndex()).get(packet.getPacketId());
-        
-        for(int i = 0; i < pendingAcks.length; i++) {
-            if(pendingAcks[i]) {
+        BitSet pendingAcks = acksMapList.get(packet.getHostIndex()).get(packet.getOriginalId());
+
+        for(int i = 0; i < pendingAcks.size(); i++) {
+            if(pendingAcks.get(i)) {
                 ++ackedHosts;
             }
         }
 
-        boolean res = ackedHosts > hostsSize / 2;
-        logger.addLine("checking candeliver " + res + " pendingAcks: " + Arrays.toString(pendingAcks));
-
-        return res;
+        return ackedHosts > hostsSize / 2;
     }
 
 }

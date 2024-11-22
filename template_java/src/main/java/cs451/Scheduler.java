@@ -4,11 +4,13 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
 import java.net.UnknownHostException;
+import java.util.BitSet;
 import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.atomic.AtomicInteger;
 
-import cs451.broadcast.BEBroadcast;
 import cs451.broadcast.Broadcast;
+import cs451.broadcast.URBroadcast;
 import cs451.link.PerfectLink;
 import cs451.packet.Message;
 import cs451.packet.MsgPacket;
@@ -17,14 +19,17 @@ import cs451.parser.Logger;
 import cs451.parser.Parser;
 
 public class Scheduler {
+    
+    private static final int MSGS_TO_SEND_INDEX = 0;
+    private static final int RECEIVER_ID_INDEX = 1;
+
     private List<Host> hosts;
     private Host selfHost;
     private Logger logger;
     private ScheduledExecutorService executor;
     private int[] input;
     private LoadBalancer loadBalancer;
-    private static final int MSGS_TO_SEND_INDEX = 0;
-    private static final int RECEIVER_ID_INDEX = 1;
+    private AtomicInteger idCounter = new AtomicInteger(1);
 
     public Scheduler(Parser parser, Logger logger, ScheduledExecutorService executor, int[] input) throws SocketException, UnknownHostException {
         this.hosts = parser.hosts();
@@ -46,7 +51,7 @@ public class Scheduler {
         int msgsToSend = input[MSGS_TO_SEND_INDEX];
         int receiverId = input[RECEIVER_ID_INDEX];
         Host targeHost = hosts.get(receiverId - 1);
-        PerfectLink link = new PerfectLink(selfHost, hosts, logger, executor);
+        PerfectLink link = new PerfectLink(selfHost, hosts, idCounter, logger, executor);
         MessageSender sender = new MessageSender(msgsToSend, targeHost, link);
         
         if(selfHost.getId() != receiverId) {
@@ -63,9 +68,9 @@ public class Scheduler {
 
     protected void runFIFOBroadcast() {
         int msgsToSend = input[MSGS_TO_SEND_INDEX];
-        PerfectLink link = new PerfectLink(selfHost, hosts, logger, executor);
-        //Broadcast broadcast = new URBroadcast(link, selfHost, hosts, logger);
-        Broadcast broadcast = new BEBroadcast(link, hosts, logger);
+        PerfectLink link = new PerfectLink(selfHost, hosts, idCounter, logger, executor);
+        Broadcast broadcast = new URBroadcast(link, selfHost, hosts, logger);
+        //Broadcast broadcast = new BEBroadcast(link, hosts, logger);
         MessageSender sender = new MessageSender(msgsToSend, broadcast);
         
         executor.execute(sender);
@@ -99,7 +104,8 @@ public class Scheduler {
         // Adds up to 8 messages to a new packet and sends it to the receiver Host.
         public void sendPacket(int msgsToAdd, int currentMsgId) {
             byte thisHostId = selfHost.getId();
-            MsgPacket packet = new MsgPacket(thisHostId);
+            int originalId = idCounter.getAndIncrement();
+            MsgPacket packet = new MsgPacket(thisHostId, originalId, new BitSet(hosts.size()));
 
             for(int i = 0; i < msgsToAdd; i++) {
                 // To string because payload can be any datatype and it only has to be logged, 

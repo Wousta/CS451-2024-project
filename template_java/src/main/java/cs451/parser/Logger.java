@@ -3,7 +3,10 @@ package cs451.parser;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -13,6 +16,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 import cs451.Host;
+import cs451.TupleKey;
+import cs451.broadcast.URBroadcast;
 import cs451.packet.AcksPacket;
 import cs451.packet.Message;
 import cs451.packet.MsgPacket;
@@ -25,6 +30,7 @@ public class Logger {
     private int myIndex;
     private AtomicLong packetId;
     private int deliveredCount = 0;
+    private URBroadcast urBroadcast;
 
 
     public Logger(String path, List<Host> hosts, int myIndex){
@@ -38,7 +44,11 @@ public class Logger {
         }
     }
 
-    
+
+    public void setUrBroadcast(URBroadcast urBroadcast) {
+        this.urBroadcast = urBroadcast;
+    }
+
 
     public void setPacketId(AtomicLong packetId) {
         this.packetId = packetId;
@@ -82,10 +92,33 @@ public class Logger {
             writer.write("\n    sent msgs: " + sent);
             //writer.write("\natomic integer value reached = " + packetId.get());
             writer.write("\ntotal messages delivered = " + deliveredCount);
+
+
+            writer.write("\n\nURB data=============");
+            int delSize = 0;
+            int pendingSize = 0;
+            int acksSize = 0;
+            for(int i = 0; i < hosts.size(); i++) {
+                delSize += urBroadcast.getDeliveredList().get(i).size();
+                pendingSize += urBroadcast.getPendingList().get(i).size();
+                acksSize += urBroadcast.getAcksMapList().get(i).size();
+            }
+            writer.write("\ndelivered size =  " + delSize);
+            writer.write("\npending size = " + pendingSize);
+            writer.write("\nacks size = " + acksSize);
+            
             writer.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    private String urbAcksToString(Map<Integer, boolean[]> acks) {
+        List<String> res = new ArrayList<>();
+
+        acks.forEach((key, val) -> res.add(key + ":" + Arrays.toString(val)));
+
+        return res.toString();
     }
 
     public Queue<String> getMessages(){
