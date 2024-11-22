@@ -8,7 +8,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import cs451.Host;
-import cs451.packet.MsgPacket;
 import cs451.packet.Packet;
 
 /**
