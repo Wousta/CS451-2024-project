@@ -1,4 +1,4 @@
-package cs451;
+package cs451.control;
 
 import java.net.DatagramSocket;
 import java.net.InetAddress;
@@ -9,6 +9,8 @@ import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import cs451.Constants;
+import cs451.Host;
 import cs451.broadcast.Broadcast;
 import cs451.broadcast.FifoURBroadcast;
 import cs451.broadcast.URBroadcast;
@@ -47,7 +49,7 @@ public class Scheduler {
 
 
     // Sends messages to one host, receives acks from that host, sends back ack ok.
-    protected void runPerfectLinks() {
+    public void runPerfectLinks() {
         int msgsToSend = input[MSGS_TO_SEND_INDEX];
         int receiverId = input[RECEIVER_ID_INDEX];
         Host targeHost = hosts.get(receiverId - 1);
@@ -66,7 +68,7 @@ public class Scheduler {
     }
 
 
-    protected void runFIFOBroadcast() {
+    public void runFIFOBroadcast() {
         int msgsToSend = input[MSGS_TO_SEND_INDEX];
         PerfectLink link = new PerfectLink(selfHost, hosts, logger, executor);
         //Broadcast broadcast = new URBroadcast(link, selfHost, hosts, logger);

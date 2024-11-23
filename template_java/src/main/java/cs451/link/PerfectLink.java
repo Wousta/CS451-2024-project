@@ -43,7 +43,6 @@ public class PerfectLink {
 
         this.selfHost = selfHost;
         this.hosts = hosts;
-        this.idCounter = idCounter;
         this.logger = logger;
 
         sentMapsLocks = new ArrayList<>(hosts.size());
@@ -51,25 +50,10 @@ public class PerfectLink {
             sentMapsLocks.add(new ReentrantLock());
         }
 
-        AckBuildAndSend ackBuildAndSend = new AckBuildAndSend();
-        //if(selfHost.getId() == 1) // TODO:  remember to comment when testing broadcast
-        executor.scheduleAtFixedRate(ackBuildAndSend, 50, 150, TimeUnit.MILLISECONDS);
+        executor.scheduleAtFixedRate(new AckBuildAndSend(), 50, 150, TimeUnit.MILLISECONDS);
 
         // Resend operation of stubbornLink that guarantees eventual delivery between correct processes.
-        executor.scheduleAtFixedRate(() -> {
-            for(Host host : hosts) {
-                ReentrantLock lock = sentMapsLocks.get(host.getIndex());
-
-                if(lock.tryLock()) {
-                    host.getSent().forEach((id, packet) -> fll.send(hosts.get(packet.getTargetHostIndex()), packet));
-                    lock.unlock();
-                }        
-
-            }
-
-            acks.forEach((id, packet) -> fll.send(hosts.get(packet.getTargetHostIndex()), packet));
-
-        }, 150, 100, TimeUnit.MILLISECONDS);
+        executor.scheduleAtFixedRate(new StubbornSend(), 150, 100, TimeUnit.MILLISECONDS);
         
     }
 
@@ -194,6 +178,26 @@ public class PerfectLink {
         }
         
         acks.remove(packet.getPacketId());
+    }
+
+
+    private class StubbornSend implements Runnable {
+
+        @Override
+        public void run() {
+            for(Host host : hosts) {
+                ReentrantLock lock = sentMapsLocks.get(host.getIndex());
+
+                if(lock.tryLock()) {
+                    host.getSent().forEach((id, packet) -> fll.send(hosts.get(packet.getTargetHostIndex()), packet));
+                    lock.unlock();
+                }        
+
+            }
+
+            acks.forEach((id, packet) -> fll.send(hosts.get(packet.getTargetHostIndex()), packet));
+        }
+        
     }
 
 

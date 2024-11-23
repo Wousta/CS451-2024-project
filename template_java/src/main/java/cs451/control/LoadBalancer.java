@@ -1,4 +1,4 @@
-package cs451;
+package cs451.control;
 
 public class LoadBalancer {
     private int nProcesses;

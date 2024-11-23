@@ -9,7 +9,6 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import cs451.Host;
-import cs451.TupleKey;
 import cs451.link.PerfectLink;
 import cs451.packet.MsgPacket;
 import cs451.parser.Logger;

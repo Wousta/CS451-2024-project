@@ -1,4 +1,4 @@
-package cs451;
+package cs451.broadcast;
 
 public class TupleKey {
     private final byte hostId;

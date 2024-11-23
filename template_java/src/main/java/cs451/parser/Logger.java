@@ -16,7 +16,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 import cs451.Host;
-import cs451.TupleKey;
+import cs451.broadcast.TupleKey;
 import cs451.broadcast.URBroadcast;
 import cs451.packet.AcksPacket;
 import cs451.packet.Message;
