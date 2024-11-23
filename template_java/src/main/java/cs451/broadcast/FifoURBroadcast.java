@@ -10,6 +10,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.PriorityBlockingQueue;
 
 import cs451.Host;
+import cs451.control.Scheduler;
 import cs451.link.PerfectLink;
 import cs451.packet.MsgPacket;
 import cs451.parser.Logger;
@@ -20,15 +21,15 @@ public class FifoURBroadcast implements Broadcast {
     private URBroadcast urBroadcast;
     private Logger logger;
     private int[] next;
-    List<PriorityBlockingQueue<MsgPacket>> pendingList;
+    private List<PriorityBlockingQueue<MsgPacket>> pendingList;
 
-    public FifoURBroadcast(PerfectLink link, Host selfHost, List<Host> hosts, Logger logger) {
-        this.hostsSize = hosts.size();
-        this.logger = logger;
+    public FifoURBroadcast(PerfectLink link, Scheduler scheduler) {
+        this.hostsSize = scheduler.getHosts().size();
+        this.logger = scheduler.getLogger();
         this.next = new int[hostsSize];
         Arrays.fill(this.next, 1);
 
-        this.urBroadcast = new URBroadcast(link, selfHost, hosts, logger);
+        this.urBroadcast = new URBroadcast(link, scheduler);
         this.urBroadcast.setFifoURBroadcast(this);
 
         pendingList = new ArrayList<>(hostsSize);

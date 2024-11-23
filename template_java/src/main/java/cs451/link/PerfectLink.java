@@ -17,6 +17,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import cs451.Host;
 import cs451.broadcast.URBroadcast;
+import cs451.control.Scheduler;
 import cs451.packet.AcksPacket;
 import cs451.packet.MsgPacket;
 import cs451.packet.Packet;
@@ -24,33 +25,34 @@ import cs451.parser.Logger;
 
 public class PerfectLink {
 
+    private Scheduler scheduler;
     private FairLossLink fll;
     private URBroadcast urBroadcast;
-    private Logger logger;
     private Host selfHost;
     private List<Host> hosts;
     private List<ReentrantLock> sentMapsLocks;
     private AtomicInteger ackIdCounter = new AtomicInteger(1);
     private AtomicInteger idCounter = new AtomicInteger(1);
     private ConcurrentMap<Integer,Packet> acks = new ConcurrentHashMap<>();
+    //ScheduledExecutorService sendExecutor = new 
 
-    public PerfectLink(Host selfHost, List<Host> hosts, Logger logger, ScheduledExecutorService executor) {
+    public PerfectLink(ScheduledExecutorService executor, Scheduler scheduler) {
+        this.scheduler = scheduler;
+        this.selfHost = scheduler.getSelfHost();
+        this.hosts = scheduler.getHosts();
+
         try {
             fll = new FairLossLink(selfHost.getSocketReceive(), executor, this);
         } catch (SocketException e) {
             e.printStackTrace();
         }
 
-        this.selfHost = selfHost;
-        this.hosts = hosts;
-        this.logger = logger;
-
         sentMapsLocks = new ArrayList<>(hosts.size());
         for(int i = 0; i < hosts.size(); i++) {
             sentMapsLocks.add(new ReentrantLock());
         }
 
-        executor.scheduleAtFixedRate(new AckBuildAndSend(), 50, 150, TimeUnit.MILLISECONDS);
+        executor.scheduleAtFixedRate(new AckBuildAndSend(), 100, 150, TimeUnit.MILLISECONDS);
 
         // Resend operation of stubbornLink that guarantees eventual delivery between correct processes.
         executor.scheduleAtFixedRate(new StubbornSend(), 150, 100, TimeUnit.MILLISECONDS);
@@ -75,6 +77,7 @@ public class PerfectLink {
 
     public void send(Host host, MsgPacket packet) {
         packet.setPacketId(idCounter.getAndIncrement());
+        host.getSentSize().getAndIncrement();
 
         try {
             packet.setLastHop(selfHost.getId());
@@ -120,7 +123,7 @@ public class PerfectLink {
             if(urBroadcast != null) {
                 urBroadcast.beBDeliver(packet);
             } else {
-                logger.logPacket(packet);
+                scheduler.getLogger().logPacket(packet);
             }
         }
     }
@@ -149,6 +152,8 @@ public class PerfectLink {
             if(receiverSent.remove(packetId) == null) {
                 break;
             }
+            
+            receiver.getSentSize().getAndDecrement();
         }
         lock.unlock();
 
@@ -157,6 +162,7 @@ public class PerfectLink {
         ackOk.setAckStep(AcksPacket.ACK_SENDER);
 
         fll.sendAckOk(hosts.get(ackOk.getTargetHostIndex()), ackOk);
+
     }
 
     private void handleAckFromSender(AcksPacket packet) {
@@ -185,8 +191,14 @@ public class PerfectLink {
 
         @Override
         public void run() {
+            boolean activateSend = false;
+
             for(Host host : hosts) {
                 ReentrantLock lock = sentMapsLocks.get(host.getIndex());
+
+                if(!activateSend && host.getSentSize().get() < 8) {
+                    activateSend = true;
+                }
 
                 if(lock.tryLock()) {
                     host.getSent().forEach((id, packet) -> fll.send(hosts.get(packet.getTargetHostIndex()), packet));
@@ -196,6 +208,10 @@ public class PerfectLink {
             }
 
             acks.forEach((id, packet) -> fll.send(hosts.get(packet.getTargetHostIndex()), packet));
+
+            if(activateSend) {
+                scheduler.tryActivateSend();
+            }
         }
         
     }

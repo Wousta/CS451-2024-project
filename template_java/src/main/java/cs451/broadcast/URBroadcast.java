@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import cs451.Host;
+import cs451.control.Scheduler;
 import cs451.link.PerfectLink;
 import cs451.packet.MsgPacket;
 import cs451.parser.Logger;
@@ -26,14 +27,14 @@ public class URBroadcast implements Broadcast {
     private List<ConcurrentHashMap<TupleKey, Boolean>> pendingList;
     private List<ConcurrentHashMap<Integer, BitSet>> acksMapList;
 
-    public URBroadcast(PerfectLink link, Host selfHost, List<Host> hosts, Logger logger) {
-        this.hostsSize = hosts.size();
+    public URBroadcast(PerfectLink link, Scheduler scheduler) {
+        this.selfHost = scheduler.getSelfHost();
+        this.hosts = scheduler.getHosts();
+        this.logger = scheduler.getLogger();
         this.link = link;
         this.link.setURBroadcast(this);
-        this.selfHost = selfHost;
-        this.hosts = hosts;
-        this.logger = logger;
         this.logger.setUrBroadcast(this);
+        this.hostsSize = hosts.size();
 
         deliveredList = new ArrayList<>(hostsSize);
         pendingList = new ArrayList<>(hostsSize);

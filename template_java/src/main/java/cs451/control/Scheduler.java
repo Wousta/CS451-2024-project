@@ -7,6 +7,7 @@ import java.net.UnknownHostException;
 import java.util.BitSet;
 import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import cs451.Constants;
@@ -25,6 +26,7 @@ public class Scheduler {
     
     private static final int MSGS_TO_SEND_INDEX = 0;
     private static final int RECEIVER_ID_INDEX = 1;
+    private static final int PACKETS_PER_SEND_EXECUTION = 32;
 
     private List<Host> hosts;
     private Host selfHost;
@@ -33,12 +35,24 @@ public class Scheduler {
     private int[] input;
     private LoadBalancer loadBalancer;
 
+    // The id counter for messages and the number of send executions to send all messages
+    private final int sendIters;
+    private final int messagesToSendRemainder;
+
+    // Runnable task for sending the messages
+    private MessageSender sender;
+    private boolean senderExecutionFinished = false;
+    private boolean allPacketsSent = false;
+
     public Scheduler(Parser parser, Logger logger, ScheduledExecutorService executor, int[] input) throws SocketException, UnknownHostException {
         this.hosts = parser.hosts();
         this.selfHost = hosts.get(parser.myIndex());
         this.logger = logger;
         this.executor = executor;
         this.input = input;
+
+        sendIters = input[MSGS_TO_SEND_INDEX]/MsgPacket.MAX_MSGS;
+        messagesToSendRemainder = input[MSGS_TO_SEND_INDEX] % MsgPacket.MAX_MSGS; 
 
         // Only one socket for receiving allowed
         selfHost.setSocketReceive(new DatagramSocket(selfHost.getPort(), InetAddress.getByName(selfHost.getIp())));
@@ -48,14 +62,33 @@ public class Scheduler {
     }
 
 
+    public List<Host> getHosts() {
+        return hosts;
+    }
+
+
+    public Host getSelfHost() {
+        return selfHost;
+    }
+
+
+    public Logger getLogger() {
+        return logger;
+    }
+
+
+    public LoadBalancer getLoadBalancer() {
+        return loadBalancer;
+    }
+
+
     // Sends messages to one host, receives acks from that host, sends back ack ok.
     public void runPerfectLinks() {
-        int msgsToSend = input[MSGS_TO_SEND_INDEX];
         int receiverId = input[RECEIVER_ID_INDEX];
         Host targeHost = hosts.get(receiverId - 1);
-        PerfectLink link = new PerfectLink(selfHost, hosts, logger, executor);
-        MessageSender sender = new MessageSender(msgsToSend, targeHost, link);
-        
+        PerfectLink link = new PerfectLink(executor, this);
+
+        sender = new MessageSender(targeHost, link);
         if(selfHost.getId() != receiverId) {
             executor.execute(sender);
         }
@@ -69,12 +102,11 @@ public class Scheduler {
 
 
     public void runFIFOBroadcast() {
-        int msgsToSend = input[MSGS_TO_SEND_INDEX];
-        PerfectLink link = new PerfectLink(selfHost, hosts, logger, executor);
+        PerfectLink link = new PerfectLink(executor, this);
         //Broadcast broadcast = new URBroadcast(link, selfHost, hosts, logger);
-        Broadcast broadcast = new FifoURBroadcast(link, selfHost, hosts, logger);
-        MessageSender sender = new MessageSender(msgsToSend, broadcast);
-        
+        Broadcast broadcast = new FifoURBroadcast(link, this);
+
+        sender = new MessageSender(broadcast);  
         executor.execute(sender);
 
         executor.execute(() -> {
@@ -85,22 +117,30 @@ public class Scheduler {
 
     }
 
+
+    public void tryActivateSend() {
+        // Used boolean because this function is always called sequentially by perfect link stubbornSend task
+        if(senderExecutionFinished && !allPacketsSent) {
+            senderExecutionFinished = false;
+            executor.execute(sender); // Will set boolean to true after finishing, avoids multiple calls to this line
+        }
+    }
+
     
     private class MessageSender implements Runnable {
-        private int msgsToSend;
         private Host targetHost;
         private PerfectLink link;
         private Broadcast broadcast;
         private int originalId = 0;
+        private int currentIter = 0;
+        private int msgId = 1;
 
-        public MessageSender(int msgsToSend, Host targetHost, PerfectLink link){
-            this.msgsToSend = msgsToSend;
+        public MessageSender(Host targetHost, PerfectLink link){
             this.link = link;
             this.targetHost = targetHost;
         }
 
-        public MessageSender(int msgsToSend, Broadcast broadcast){
-            this.msgsToSend = msgsToSend;
+        public MessageSender(Broadcast broadcast){
             this.broadcast = broadcast;
         }
 
@@ -130,32 +170,28 @@ public class Scheduler {
 
         @Override
         public void run() {
-            int msgId = 1;
-            int msgsPerPacket = MsgPacket.MAX_MSGS;
-            int iters = msgsToSend/msgsPerPacket; // Each packet can store up to 8 messages
-            int lastIters = msgsToSend % msgsPerPacket; // Remaining messages
-            int maxSentSize = 32;//loadBalancer.getSentMaxSize();//132; // Maximum size of the sent messages data structure
 
-            for(int i = 0; i < iters; i++) {
-                // It waits before sending messages if sent size gets to a limit, to avoid consuming all memory.
-                while(selfHost.getSent().size() >= maxSentSize) {
-                    try {
-                        Thread.sleep(200);
-                    } catch (InterruptedException e) {
-                        System.err.println("Thread stopped while waiting to send more packets, this is expected if program is stopped mid execution");
-                        e.printStackTrace();
-                        Thread.currentThread().interrupt();
-                    }
+            // Send remaining messages, we do not set finished to true because all messages are sent
+            if(currentIter == sendIters) {
+                if(messagesToSendRemainder > 0) {
+                    sendPacket(messagesToSendRemainder, msgId);
                 }
 
-                sendPacket(msgsPerPacket, msgId);
-                msgId += 8;
+                allPacketsSent = true;
+                return;
             }
 
-            // Send remaining messages
-            if(lastIters > 0) {
-                sendPacket(lastIters, msgId);
+            for(int i = 0; i < PACKETS_PER_SEND_EXECUTION; i++) {
+                sendPacket(MsgPacket.MAX_MSGS, msgId);
+                msgId += 8;
+                currentIter++;
+                if(currentIter == sendIters) {
+                    break;
+                }
             }
+
+            senderExecutionFinished = true;
+
         }
     }
 
