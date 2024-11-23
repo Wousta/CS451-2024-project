@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.LinkedBlockingDeque;
@@ -28,10 +29,12 @@ public class PerfectLink {
     private Logger logger;
     private Host selfHost;
     private List<Host> hosts;
-    private AtomicInteger idCounter;
     private List<ReentrantLock> sentMapsLocks;
+    private AtomicInteger ackIdCounter = new AtomicInteger(1);
+    private AtomicInteger idCounter = new AtomicInteger(1);
+    private ConcurrentMap<Integer,Packet> acks = new ConcurrentHashMap<>();
 
-    public PerfectLink(Host selfHost, List<Host> hosts, AtomicInteger idCounter, Logger logger, ScheduledExecutorService executor){
+    public PerfectLink(Host selfHost, List<Host> hosts, Logger logger, ScheduledExecutorService executor) {
         try {
             fll = new FairLossLink(selfHost.getSocketReceive(), executor, this);
         } catch (SocketException e) {
@@ -61,7 +64,10 @@ public class PerfectLink {
                     host.getSent().forEach((id, packet) -> fll.send(hosts.get(packet.getTargetHostIndex()), packet));
                     lock.unlock();
                 }        
+
             }
+
+            acks.forEach((id, packet) -> fll.send(hosts.get(packet.getTargetHostIndex()), packet));
 
         }, 150, 100, TimeUnit.MILLISECONDS);
         
@@ -83,7 +89,7 @@ public class PerfectLink {
     }
 
 
-    public void send(Host host, Packet packet) {
+    public void send(Host host, MsgPacket packet) {
         packet.setPacketId(idCounter.getAndIncrement());
 
         try {
@@ -93,7 +99,6 @@ public class PerfectLink {
             e.printStackTrace();
         }
     }
-
 
     public void deliver(byte[] data) {
         try {
@@ -188,16 +193,26 @@ public class PerfectLink {
             }
         }
         
-        host.getSent().remove(packet.getPacketId());
+        acks.remove(packet.getPacketId());
     }
 
 
     private class AckBuildAndSend implements Runnable {
 
+        private void sendAck(AcksPacket packet) {
+            packet.setPacketId(ackIdCounter.getAndIncrement());
+    
+            try {
+                acks.put(packet.getPacketId(), packet);
+            } catch(Exception e) {
+                e.printStackTrace();
+            }
+        }
+
         // Extracts from waiting acks queue and puts them into a new acks queue ready to be sent.
         private BlockingQueue<Integer> buildAckQueue(BlockingQueue<Integer> pendingAcks) {
             int count = 0;
-            int acksToAdd = 32;//loadBalancer.getAcksToAdd();
+            int acksToAdd = 128;//loadBalancer.getAcksToAdd();
             BlockingQueue<Integer> ackQueueToSend = new LinkedBlockingDeque<>();
 
             while(!pendingAcks.isEmpty() && count < acksToAdd) {
@@ -233,7 +248,7 @@ public class PerfectLink {
                     ackQueueToSend
                 );
 
-                send(host, packet);
+                sendAck(packet);
             }
         }
         

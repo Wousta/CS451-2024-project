@@ -21,9 +21,11 @@ public class URBroadcast implements Broadcast {
     private Host selfHost;
     private List<Host> hosts;
     private Logger logger;
+    private FifoURBroadcast fifoURBroadcast;
+
     private List<Map<Integer, Boolean>> deliveredList;
     private List<ConcurrentHashMap<TupleKey, Boolean>> pendingList;
-    private List<Map<Integer, BitSet>> acksMapList;
+    private List<ConcurrentHashMap<Integer, BitSet>> acksMapList;
 
     public URBroadcast(PerfectLink link, Host selfHost, List<Host> hosts, Logger logger) {
         this.hostsSize = hosts.size();
@@ -41,8 +43,13 @@ public class URBroadcast implements Broadcast {
         for(int i = 0; i < hostsSize; i++) {
             deliveredList.add(new HashMap<>());
             pendingList.add(new ConcurrentHashMap<>());
-            acksMapList.add(new HashMap<>());
+            acksMapList.add(new ConcurrentHashMap<>());
         }
+    }
+
+
+    public void setFifoURBroadcast(FifoURBroadcast fifoURBroadcast) {
+        this.fifoURBroadcast = fifoURBroadcast;
     }
 
 
@@ -56,7 +63,7 @@ public class URBroadcast implements Broadcast {
     }
 
 
-    public List<Map<Integer, BitSet>> getAcksMapList() {
+    public List<ConcurrentHashMap<Integer, BitSet>> getAcksMapList() {
         return acksMapList;
     }
 
@@ -86,7 +93,6 @@ public class URBroadcast implements Broadcast {
         int ogSenderIndex = packet.getHostIndex();
         int lastHopIndex = packet.getLastHopIndex();
         Map<Integer, Boolean> delivered = deliveredList.get(ogSenderIndex);
-        Map<TupleKey, Boolean> pending = pendingList.get(ogSenderIndex);
 
         Map<Integer, BitSet> acksMap = acksMapList.get(ogSenderIndex);
         BitSet pendingAcks = acksMap.get(ogPacketId);
@@ -96,27 +102,37 @@ public class URBroadcast implements Broadcast {
             BitSet acks = new BitSet(hostsSize);
             acks.or(packet.getAlreadyDelivered());
             acksMap.put(ogPacketId, acks);
-        } else {
+        } 
+        else {
             pendingAcks.or(packet.getAlreadyDelivered());
         }
 
         TupleKey key = new TupleKey(packet.getHostId(), ogPacketId);
+        Map<TupleKey, Boolean> pending = pendingList.get(ogSenderIndex);
         if(!pending.containsKey(key)) {
             pending.put(key, true);
             beBroadcast(packet);
         }
         else if(canDeliver(packet) && !delivered.containsKey(ogPacketId)) {
             delivered.put(ogPacketId, true);
-            deliver(packet);
+            acksMap.remove(ogPacketId);
+
+            try {
+                deliver(packet);
+            } catch (ClassNotFoundException | IOException e) {
+                e.printStackTrace();
+            }
+
         }
     }
 
 
-    public void deliver(MsgPacket packet) {
-        try {
+    public void deliver(MsgPacket packet) throws ClassNotFoundException, IOException {
+        if(fifoURBroadcast != null) {
+            fifoURBroadcast.deliver(packet);
+        } 
+        else {
             logger.logPacket(packet);
-        } catch (ClassNotFoundException | IOException e) {
-            e.printStackTrace();
         }
     }
 
