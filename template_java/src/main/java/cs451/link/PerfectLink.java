@@ -21,7 +21,6 @@ import cs451.control.Scheduler;
 import cs451.packet.AcksPacket;
 import cs451.packet.MsgPacket;
 import cs451.packet.Packet;
-import cs451.parser.Logger;
 
 public class PerfectLink {
 

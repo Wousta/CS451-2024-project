@@ -6,10 +6,8 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.PriorityBlockingQueue;
 
-import cs451.Host;
 import cs451.control.Scheduler;
 import cs451.link.PerfectLink;
 import cs451.packet.MsgPacket;
