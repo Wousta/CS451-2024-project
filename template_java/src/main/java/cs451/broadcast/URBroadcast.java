@@ -109,13 +109,14 @@ public class URBroadcast implements Broadcast {
 
         TupleKey key = new TupleKey(packet.getHostId(), ogPacketId);
         Map<TupleKey, Boolean> pending = pendingList.get(ogSenderIndex);
-        if(!pending.containsKey(key)) {
+        if(!pending.containsKey(key) && !delivered.containsKey(ogPacketId)) {
             pending.put(key, true);
             beBroadcast(packet);
         }
         else if(canDeliver(packet) && !delivered.containsKey(ogPacketId)) {
             delivered.put(ogPacketId, true);
             acksMap.remove(ogPacketId);
+            pending.remove(key);
 
             try {
                 deliver(packet);

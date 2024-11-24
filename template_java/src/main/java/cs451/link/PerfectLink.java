@@ -34,7 +34,6 @@ public class PerfectLink {
     private AtomicInteger ackIdCounter = new AtomicInteger(1);
     private AtomicInteger idCounter = new AtomicInteger(1);
     private ConcurrentMap<Integer,Packet> acks = new ConcurrentHashMap<>();
-    //ScheduledExecutorService sendExecutor = new 
 
     public PerfectLink(ScheduledExecutorService executor, Scheduler scheduler) {
         this.scheduler = scheduler;
