@@ -97,22 +97,30 @@ public class URBroadcast implements Broadcast {
         Map<Integer, BitSet> acksMap = acksMapList.get(ogSenderIndex);
         BitSet pendingAcks = acksMap.get(ogPacketId);
         
+        // Add to the bitSet the last hop host that bebDelivered this packet
         packet.getAlreadyDelivered().set(lastHopIndex);
+
+        // If received for the first time, create the bitset from the packet bitset and add it to acks map.
         if(pendingAcks == null) {
             BitSet acks = new BitSet(hostsSize);
             acks.or(packet.getAlreadyDelivered());
             acksMap.put(ogPacketId, acks);
         } 
         else {
+            // If already received before just OR the hosts that have bebDelivered this packet using the BitSet
             pendingAcks.or(packet.getAlreadyDelivered());
         }
 
+
         TupleKey key = new TupleKey(packet.getHostId(), ogPacketId);
         Map<TupleKey, Boolean> pending = pendingList.get(ogSenderIndex);
+
+        // Relay message if applicable, check delivered as well because we clean pending
         if(!pending.containsKey(key) && !delivered.containsKey(ogPacketId)) {
             pending.put(key, true);
             beBroadcast(packet);
         }
+        // Check if it can be URB delivered and remove from pending and acksMap
         else if(canDeliver(packet) && !delivered.containsKey(ogPacketId)) {
             delivered.put(ogPacketId, true);
             acksMap.remove(ogPacketId);
@@ -129,12 +137,13 @@ public class URBroadcast implements Broadcast {
 
 
     public void deliver(MsgPacket packet) throws ClassNotFoundException, IOException {
-        if(fifoURBroadcast != null) {
-            fifoURBroadcast.deliver(packet);
-        } 
-        else {
-            logger.logPacket(packet);
-        }
+        fifoURBroadcast.deliver(packet);
+        // if(fifoURBroadcast != null) {
+        //     fifoURBroadcast.deliver(packet);
+        // } 
+        // else {
+        //     logger.logPacket(packet);
+        // }
     }
 
 

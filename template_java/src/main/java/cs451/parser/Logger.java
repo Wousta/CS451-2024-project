@@ -55,7 +55,7 @@ public class Logger {
     }
 
     public synchronized void logPacket(MsgPacket packet) throws ClassNotFoundException, IOException {
-        addLine("DELIVERED " + packet.getHostId() + " " + packet.getOriginalId());
+        //addLine("DELIVERED " + packet.getHostId() + " " + packet.getOriginalId());
         for(Message m : packet.getMessages()) {
             //System.out.println("d " + m.getHostId() + " " + (String)MsgPacket.deSerialize(m.getData()));
             addLine("d " + m.getHostId() + " " + (String)Packet.deSerialize(m.getData()));

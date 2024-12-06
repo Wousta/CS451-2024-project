@@ -50,10 +50,10 @@ public class PerfectLink {
             sentMapsLocks.add(new ReentrantLock());
         }
 
-        executor.scheduleAtFixedRate(new AckBuildAndSend(), 100, 150, TimeUnit.MILLISECONDS);
+        executor.scheduleAtFixedRate(new AckBuildAndSend(), 100, 250, TimeUnit.MILLISECONDS);
 
         // Resend operation of stubbornLink that guarantees eventual delivery between correct processes.
-        executor.scheduleAtFixedRate(new StubbornSend(), 150, 100, TimeUnit.MILLISECONDS);
+        executor.scheduleAtFixedRate(new StubbornSend(), 150, 300, TimeUnit.MILLISECONDS);
         
     }
 
@@ -91,8 +91,7 @@ public class PerfectLink {
             if(obj instanceof MsgPacket) {
                 handleMsgPacket(data);
             }
-
-            if(obj instanceof AcksPacket) {
+            else if(obj instanceof AcksPacket) {
                 handleAcksPacket(data);
             }
         } catch (Exception e) {
@@ -118,11 +117,12 @@ public class PerfectLink {
             // Add id of packet to pending packets to be acked, we only send Ids for acking.
             sender.getPendingAcks().add(packetId);
 
-            if(urBroadcast != null) {
-                urBroadcast.beBDeliver(packet);
-            } else {
-                scheduler.getLogger().logPacket(packet);
-            }
+            urBroadcast.beBDeliver(packet);
+            // if(urBroadcast != null) {
+            //     urBroadcast.beBDeliver(packet);
+            // } else {
+            //     scheduler.getLogger().logPacket(packet);
+            // }
         }
     }
 

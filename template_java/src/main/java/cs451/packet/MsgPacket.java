@@ -42,6 +42,11 @@ public class MsgPacket extends Packet {
         return messages;
     }
 
+    /**
+     * The packet tracks the hosts that has already visited and have bebDelivered this packet,
+     * to speed up the process of getting n/2 + 1 processes packet delivered.
+     * @return A bitset with the bit of each host index set to 1 if it bebDelivered this packet or 0 if it did not.
+     */
     public BitSet getAlreadyDelivered() {
         return alreadyDelivered;
     }
