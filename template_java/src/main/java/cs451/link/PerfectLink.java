@@ -117,12 +117,11 @@ public class PerfectLink {
             // Add id of packet to pending packets to be acked, we only send Ids for acking.
             sender.getPendingAcks().add(packetId);
 
-            urBroadcast.beBDeliver(packet);
-            // if(urBroadcast != null) {
-            //     urBroadcast.beBDeliver(packet);
-            // } else {
-            //     scheduler.getLogger().logPacket(packet);
-            // }
+            if(urBroadcast != null) {
+                urBroadcast.beBDeliver(packet);
+            } else {
+                scheduler.getLogger().logPacket(packet);
+            }
         }
     }
 
@@ -230,7 +229,7 @@ public class PerfectLink {
         // Extracts from waiting acks queue and puts them into a new acks queue ready to be sent.
         private BlockingQueue<Integer> buildAckQueue(BlockingQueue<Integer> pendingAcks) {
             int count = 0;
-            int acksToAdd = 128;//loadBalancer.getAcksToAdd();
+            int acksToAdd = 128;
             BlockingQueue<Integer> ackQueueToSend = new LinkedBlockingDeque<>();
 
             while(!pendingAcks.isEmpty() && count < acksToAdd) {

@@ -137,13 +137,12 @@ public class URBroadcast implements Broadcast {
 
 
     public void deliver(MsgPacket packet) throws ClassNotFoundException, IOException {
-        fifoURBroadcast.deliver(packet);
-        // if(fifoURBroadcast != null) {
-        //     fifoURBroadcast.deliver(packet);
-        // } 
-        // else {
-        //     logger.logPacket(packet);
-        // }
+        if(fifoURBroadcast != null) {
+            fifoURBroadcast.deliver(packet);
+        } 
+        else {
+            logger.logPacket(packet);
+        }
     }
 
 

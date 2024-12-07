@@ -7,14 +7,11 @@ import java.net.UnknownHostException;
 import java.util.BitSet;
 import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import cs451.Constants;
 import cs451.Host;
 import cs451.broadcast.Broadcast;
 import cs451.broadcast.FifoURBroadcast;
-import cs451.broadcast.URBroadcast;
 import cs451.link.PerfectLink;
 import cs451.packet.Message;
 import cs451.packet.MsgPacket;
@@ -58,7 +55,7 @@ public class Scheduler {
         selfHost.setSocketReceive(new DatagramSocket(selfHost.getPort(), InetAddress.getByName(selfHost.getIp())));
         selfHost.setOutputPath(parser.output());
 
-        loadBalancer = new LoadBalancer(hosts.size(), input[MSGS_TO_SEND_INDEX]);
+        loadBalancer = new LoadBalancer(hosts.size());
     }
 
 
@@ -103,7 +100,6 @@ public class Scheduler {
 
     public void runFIFOBroadcast() {
         PerfectLink link = new PerfectLink(executor, this);
-        //Broadcast broadcast = new URBroadcast(link, selfHost, hosts, logger);
         Broadcast broadcast = new FifoURBroadcast(link, this);
 
         sender = new MessageSender(broadcast);  

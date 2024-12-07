@@ -43,7 +43,6 @@ public class FairLossLink {
         try {
             packet.setTimeStamp(timesTamp.getAndIncrement());
             byte[] buf = Packet.serialize(packet);
-            //System.out.println("Buf length = " + buf.length);
             if(buf.length > bufSize.get()) {
                 bufSize.set(buf.length);
             }
@@ -73,7 +72,6 @@ public class FairLossLink {
         try {
             packet.setTimeStamp(timesTamp.getAndIncrement());
             byte[] buf = Packet.serialize(packet);
-            //System.out.println("Buf length = " + buf.length);
             if(buf.length > bufSize.get()) {
                 bufSize.set(buf.length);
             }

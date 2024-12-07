@@ -3,20 +3,15 @@ package cs451.parser;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 
 import cs451.Host;
-import cs451.broadcast.TupleKey;
 import cs451.broadcast.URBroadcast;
 import cs451.packet.AcksPacket;
 import cs451.packet.Message;
@@ -39,7 +34,6 @@ public class Logger {
         try {
             writer = new BufferedWriter(new FileWriter(path), 32768);
         } catch (IOException e) {
-            System.out.println("Exception in logger constructor");
             e.printStackTrace();
         }
     }
@@ -55,9 +49,7 @@ public class Logger {
     }
 
     public synchronized void logPacket(MsgPacket packet) throws ClassNotFoundException, IOException {
-        //addLine("DELIVERED " + packet.getHostId() + " " + packet.getOriginalId());
         for(Message m : packet.getMessages()) {
-            //System.out.println("d " + m.getHostId() + " " + (String)MsgPacket.deSerialize(m.getData()));
             addLine("d " + m.getHostId() + " " + (String)Packet.deSerialize(m.getData()));
             ++deliveredCount;
         }
@@ -90,8 +82,6 @@ public class Logger {
             });
             writer.write("delivered size = " + deliveredRemaining);
             writer.write("\nsent size = " + sent.size() + " acks: " + acksInSent.get() + " msgs: " + msgsInSent.get());
-            //writer.write("\n    sent msgs: " + sent);
-            //writer.write("\natomic integer value reached = " + packetId.get());
             writer.write("\ntotal messages delivered = " + deliveredCount);
 
 
@@ -112,14 +102,6 @@ public class Logger {
         } catch (IOException e) {
             e.printStackTrace();
         }
-    }
-
-    private String urbAcksToString(Map<Integer, boolean[]> acks) {
-        List<String> res = new ArrayList<>();
-
-        acks.forEach((key, val) -> res.add(key + ":" + Arrays.toString(val)));
-
-        return res.toString();
     }
 
     public Queue<String> getMessages(){
