@@ -8,6 +8,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import cs451.packet.Packet;
 
@@ -38,6 +39,7 @@ public class Host {
      * The key is the PacketId.
      */
     private ConcurrentSkipListMap<Integer,Packet> sent = new ConcurrentSkipListMap<>();
+    private AtomicInteger sentSize = new AtomicInteger();
 
     public boolean populate(String idString, String ipString, String portString) {
         try {
@@ -142,6 +144,10 @@ public class Host {
      */
     public BlockingQueue<Integer> getPendingAcks() {
         return pendingAcks;
+    }
+
+    public AtomicInteger getSentSize() {
+        return sentSize;
     }
 
     // SETTERS ================================================

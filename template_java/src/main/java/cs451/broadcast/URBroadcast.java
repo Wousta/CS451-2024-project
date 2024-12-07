@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import cs451.Host;
+import cs451.control.Scheduler;
 import cs451.link.PerfectLink;
 import cs451.packet.MsgPacket;
 import cs451.parser.Logger;
@@ -26,14 +27,14 @@ public class URBroadcast implements Broadcast {
     private List<ConcurrentHashMap<TupleKey, Boolean>> pendingList;
     private List<ConcurrentHashMap<Integer, BitSet>> acksMapList;
 
-    public URBroadcast(PerfectLink link, Host selfHost, List<Host> hosts, Logger logger) {
-        this.hostsSize = hosts.size();
+    public URBroadcast(PerfectLink link, Scheduler scheduler) {
+        this.selfHost = scheduler.getSelfHost();
+        this.hosts = scheduler.getHosts();
+        this.logger = scheduler.getLogger();
         this.link = link;
         this.link.setURBroadcast(this);
-        this.selfHost = selfHost;
-        this.hosts = hosts;
-        this.logger = logger;
         this.logger.setUrBroadcast(this);
+        this.hostsSize = hosts.size();
 
         deliveredList = new ArrayList<>(hostsSize);
         pendingList = new ArrayList<>(hostsSize);
@@ -96,25 +97,34 @@ public class URBroadcast implements Broadcast {
         Map<Integer, BitSet> acksMap = acksMapList.get(ogSenderIndex);
         BitSet pendingAcks = acksMap.get(ogPacketId);
         
+        // Add to the bitSet the last hop host that bebDelivered this packet
         packet.getAlreadyDelivered().set(lastHopIndex);
+
+        // If received for the first time, create the bitset from the packet bitset and add it to acks map.
         if(pendingAcks == null) {
             BitSet acks = new BitSet(hostsSize);
             acks.or(packet.getAlreadyDelivered());
             acksMap.put(ogPacketId, acks);
         } 
         else {
+            // If already received before just OR the hosts that have bebDelivered this packet using the BitSet
             pendingAcks.or(packet.getAlreadyDelivered());
         }
 
+
         TupleKey key = new TupleKey(packet.getHostId(), ogPacketId);
         Map<TupleKey, Boolean> pending = pendingList.get(ogSenderIndex);
-        if(!pending.containsKey(key)) {
+
+        // Relay message if applicable, check delivered as well because we clean pending
+        if(!pending.containsKey(key) && !delivered.containsKey(ogPacketId)) {
             pending.put(key, true);
             beBroadcast(packet);
         }
+        // Check if it can be URB delivered and remove from pending and acksMap
         else if(canDeliver(packet) && !delivered.containsKey(ogPacketId)) {
             delivered.put(ogPacketId, true);
             acksMap.remove(ogPacketId);
+            pending.remove(key);
 
             try {
                 deliver(packet);

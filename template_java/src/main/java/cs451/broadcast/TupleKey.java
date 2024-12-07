@@ -1,5 +1,10 @@
 package cs451.broadcast;
 
+/**
+ * The TupleKey stores the original host and id of this packet.
+ * It is used by URBroadcast Pending Map, to know if it should relay this packet
+ * or if it already relayed it before (using original host and packet id to know it).
+ */
 public class TupleKey {
     private final byte hostId;
     private final int ogPacketId;

@@ -36,18 +36,14 @@ def validate_fifo(file_path, n_procs):
 
 
 def main():
-    if len(sys.argv) != 2:
-        print("Usage: python validateFIFO.py <number of .output files> e.g.: validateFIFO.py 5")
-        sys.exit(1)
-
-    n_procs = sys.argv[1]
     stress_logs_dir = "../stressLogs"
 
     correct_order = True
-    for file_name in os.listdir(stress_logs_dir):
+    logs_list = os.listdir(stress_logs_dir)
+    for file_name in logs_list:
         if file_name.startswith("proc") and file_name.endswith(".output"):
             file_path = os.path.join(stress_logs_dir, file_name)
-            if not validate_fifo(file_path, n_procs):
+            if not validate_fifo(file_path, len(logs_list) - 2):
                 correct_order = False
 
     if correct_order:
