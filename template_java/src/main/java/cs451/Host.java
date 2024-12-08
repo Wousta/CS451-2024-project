@@ -39,6 +39,8 @@ public class Host {
      * The key is the PacketId.
      */
     private ConcurrentSkipListMap<Integer,Packet> sent = new ConcurrentSkipListMap<>();
+
+    // Serves as a very rough estimate, may even return negative but serves its purpose
     private AtomicInteger sentSize = new AtomicInteger();
 
     public boolean populate(String idString, String ipString, String portString) {

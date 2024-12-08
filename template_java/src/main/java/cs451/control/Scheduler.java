@@ -10,8 +10,8 @@ import java.util.concurrent.ScheduledExecutorService;
 
 import cs451.Constants;
 import cs451.Host;
+import cs451.broadcast.BEBroadcast;
 import cs451.broadcast.Broadcast;
-import cs451.broadcast.FifoURBroadcast;
 import cs451.link.PerfectLink;
 import cs451.packet.Message;
 import cs451.packet.MsgPacket;
@@ -95,12 +95,15 @@ public class Scheduler {
                 link.getFairLossLink().deliver();
             }
         });
-    }
+    } 
 
 
     public void runFIFOBroadcast() {
         PerfectLink link = new PerfectLink(executor, this);
-        Broadcast broadcast = new FifoURBroadcast(link, this);
+        //Broadcast broadcast = new FifoURBroadcast(link, this);
+        Broadcast broadcast = new BEBroadcast(link, this);
+
+        link.setBroadcast(broadcast);
 
         sender = new MessageSender(broadcast);  
         executor.execute(sender);
@@ -111,6 +114,23 @@ public class Scheduler {
             }
         });
 
+    }
+
+
+    public void runLatticeAgreement(List<int[]> proposals) {
+        PerfectLink link = new PerfectLink(executor, this);
+        Broadcast broadcast = new BEBroadcast(link, this);
+
+        link.setBroadcast(broadcast);
+
+        sender = new MessageSender(broadcast);  
+        executor.execute(sender);
+
+        executor.execute(() -> {
+            while(true) {
+                link.getFairLossLink().deliver();
+            }
+        });
     }
 
 

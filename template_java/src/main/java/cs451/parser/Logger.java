@@ -85,18 +85,20 @@ public class Logger {
             writer.write("\ntotal messages delivered = " + deliveredCount);
 
 
-            writer.write("\n\nURB data=============");
-            int delSize = 0;
-            int pendingSize = 0;
-            int acksSize = 0;
-            for(int i = 0; i < hosts.size(); i++) {
-                delSize += urBroadcast.getDeliveredList().get(i).size();
-                pendingSize += urBroadcast.getPendingList().get(i).size();
-                acksSize += urBroadcast.getAcksMapList().get(i).size();
+            if(urBroadcast != null) {
+                writer.write("\n\nURB data=============");
+                int delSize = 0;
+                int pendingSize = 0;
+                int acksSize = 0;
+                for(int i = 0; i < hosts.size(); i++) {
+                    delSize += urBroadcast.getDeliveredList().get(i).size();
+                    pendingSize += urBroadcast.getPendingList().get(i).size();
+                    acksSize += urBroadcast.getAcksMapList().get(i).size();
+                }
+                writer.write("\ndelivered size =  " + delSize);
+                writer.write("\npending size = " + pendingSize);
+                writer.write("\nacks size = " + acksSize);
             }
-            writer.write("\ndelivered size =  " + delSize);
-            writer.write("\npending size = " + pendingSize);
-            writer.write("\nacks size = " + acksSize);
             
             writer.close();
         } catch (IOException e) {

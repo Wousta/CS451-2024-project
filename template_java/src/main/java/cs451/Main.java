@@ -3,6 +3,7 @@ package cs451;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.Executors;
@@ -57,9 +58,18 @@ public class Main {
 
 
         int[] input; // Argumens of the configuration
+        List<int[]> proposals = new ArrayList<>();
         try (BufferedReader reader = new BufferedReader(new FileReader(config))) {
             String[] parts = reader.readLine().trim().split("\\s+");
             input = Arrays.stream(parts).mapToInt(Integer::parseInt).toArray();
+
+            if(input.length == Constants.LATTICE) {
+                for(int i = 0; i < input[0]; i++) {
+                    String[] line = reader.readLine().trim().split("\\s+");
+                    int[] proposal = Arrays.stream(line).mapToInt(Integer::parseInt).toArray();
+                    proposals.add(proposal);
+                }
+            }
         }
         catch(Exception e){
             System.err.println("Bad initialization");
@@ -79,7 +89,7 @@ public class Main {
                 scheduler.runPerfectLinks();
                 break;
             case Constants.LATTICE:
-                // Run Lattice
+                scheduler.runLatticeAgreement(proposals);
                 break;
             default:
                 System.err.println("Configuration mode not recognized");

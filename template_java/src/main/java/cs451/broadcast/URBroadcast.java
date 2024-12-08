@@ -32,7 +32,7 @@ public class URBroadcast implements Broadcast {
         this.hosts = scheduler.getHosts();
         this.logger = scheduler.getLogger();
         this.link = link;
-        this.link.setURBroadcast(this);
+        this.link.setBroadcast(this);
         this.logger.setUrBroadcast(this);
         this.hostsSize = hosts.size();
 
@@ -83,11 +83,7 @@ public class URBroadcast implements Broadcast {
     }
 
 
-    /**
-     * Triggered by PerfectLink when it delivers a message
-     * @param packet the packet delivered by perfect links
-     */
-    public void beBDeliver(MsgPacket packet) {
+    public void deliver(MsgPacket packet) {
 
         int ogPacketId = packet.getOriginalId();
         int ogSenderIndex = packet.getHostIndex();
@@ -127,7 +123,7 @@ public class URBroadcast implements Broadcast {
             pending.remove(key);
 
             try {
-                deliver(packet);
+                urbDeliver(packet);
             } catch (ClassNotFoundException | IOException e) {
                 e.printStackTrace();
             }
@@ -136,7 +132,7 @@ public class URBroadcast implements Broadcast {
     }
 
 
-    public void deliver(MsgPacket packet) throws ClassNotFoundException, IOException {
+    public void urbDeliver(MsgPacket packet) throws ClassNotFoundException, IOException {
         if(fifoURBroadcast != null) {
             fifoURBroadcast.deliver(packet);
         } 
