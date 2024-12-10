@@ -4,6 +4,7 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
 import java.net.UnknownHostException;
+import java.util.Arrays;
 import java.util.BitSet;
 import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
@@ -12,6 +13,7 @@ import cs451.Constants;
 import cs451.Host;
 import cs451.broadcast.BEBroadcast;
 import cs451.broadcast.Broadcast;
+import cs451.broadcast.FifoURBroadcast;
 import cs451.link.PerfectLink;
 import cs451.packet.Message;
 import cs451.packet.MsgPacket;
@@ -100,8 +102,7 @@ public class Scheduler {
 
     public void runFIFOBroadcast() {
         PerfectLink link = new PerfectLink(executor, this);
-        //Broadcast broadcast = new FifoURBroadcast(link, this);
-        Broadcast broadcast = new BEBroadcast(link, this);
+        Broadcast broadcast = new FifoURBroadcast(link, this);
 
         link.setBroadcast(broadcast);
 
@@ -121,16 +122,16 @@ public class Scheduler {
         PerfectLink link = new PerfectLink(executor, this);
         Broadcast broadcast = new BEBroadcast(link, this);
 
-        link.setBroadcast(broadcast);
+        // link.setBroadcast(broadcast);
 
-        sender = new MessageSender(broadcast);  
-        executor.execute(sender);
+        // sender = new MessageSender(broadcast);  
+        // executor.execute(sender);
 
-        executor.execute(() -> {
-            while(true) {
-                link.getFairLossLink().deliver();
-            }
-        });
+        // executor.execute(() -> {
+        //     while(true) {
+        //         link.getFairLossLink().deliver();
+        //     }
+        // });
     }
 
 

@@ -12,8 +12,11 @@ public class MsgPacket extends Packet {
     private final BitSet alreadyDelivered;
     private final int originalId;
 
+    private byte lastHop;
+
     public MsgPacket(byte hostId, int originalId, BitSet alreadyDelivered) {
-        super(hostId, (byte) 0); // Assuming a default value for destinationHostId
+        super(hostId);
+        this.lastHop = hostId;
         this.originalId = originalId;
         this.alreadyDelivered = alreadyDelivered;
     }
@@ -53,6 +56,18 @@ public class MsgPacket extends Packet {
 
     public int getOriginalId() {
         return originalId;
+    }
+
+    public int getLastHop() {
+        return lastHop;
+    }
+
+    public int getLastHopIndex() {
+        return lastHop - 1;
+    }
+
+    public void setLastHop(byte lastHop) {
+        this.lastHop = lastHop;
     }
 
     /////////////////////////////////////////////////////////////
