@@ -11,6 +11,7 @@ public class MsgPacket extends Packet {
     private final Queue<Message> messages = new LinkedList<>();
     private final BitSet alreadyDelivered;
     private final int originalId;
+    private int propNumber;
 
     private byte lastHop;
 
@@ -29,6 +30,7 @@ public class MsgPacket extends Packet {
             messages.add(m);
         }
     }
+
 
     /**
      * Adds a message to the Packet's internal queue of messages.
@@ -70,8 +72,15 @@ public class MsgPacket extends Packet {
         this.lastHop = lastHop;
     }
 
-    /////////////////////////////////////////////////////////////
+    public int getPropNumber() {
+        return propNumber;
+    }
 
+    public void setPropNumber(int propNumber) {
+        this.propNumber = propNumber;
+    }
+
+    /////////////////////////////////////////////////////////////
 
     @Override
     public String toString() {
@@ -106,6 +115,10 @@ public class MsgPacket extends Packet {
         result = prime * result + Long.hashCode(packetId);
         result = prime * result + Integer.hashCode(hostId);
         return result;
+    }
+
+    public static int getMaxMsgs() {
+        return MAX_MSGS;
     }
 
 }

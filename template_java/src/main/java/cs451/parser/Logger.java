@@ -48,9 +48,13 @@ public class Logger {
         this.packetId = packetId;
     }
 
-    public synchronized void logPacket(MsgPacket packet) throws ClassNotFoundException, IOException {
+    public synchronized void logPacket(MsgPacket packet) {
         for(Message m : packet.getMessages()) {
-            addLine("d " + m.getHostId() + " " + (String)Packet.deSerialize(m.getData()));
+            try {
+                addLine("d " + m.getHostId() + " " + (String)Packet.deSerialize(m.getData()));
+            } catch (ClassNotFoundException | IOException e) {
+                e.printStackTrace();
+            }
             ++deliveredCount;
         }
     }

@@ -16,6 +16,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
 
 import cs451.Host;
+import cs451.agreement.Acceptor;
 import cs451.broadcast.Broadcast;
 import cs451.control.Scheduler;
 import cs451.packet.AcksPacket;
@@ -25,10 +26,8 @@ import cs451.packet.Packet;
 public class PerfectLink {
 
     // Dependencies
-    private ScheduledExecutorService executor;
     private Scheduler scheduler;
     private FairLossLink fll;
-    private Broadcast broadcast;
     private Host selfHost;
     private List<Host> hosts;
     private List<ReentrantLock> sentMapsLocks;
@@ -43,13 +42,12 @@ public class PerfectLink {
     private ConcurrentMap<Integer,Packet> acks = new ConcurrentHashMap<>();
 
     public PerfectLink(ScheduledExecutorService executor, Scheduler scheduler) {
-        this.executor = executor;
         this.scheduler = scheduler;
         this.selfHost = scheduler.getSelfHost();
         this.hosts = scheduler.getHosts();
 
         try {
-            fll = new FairLossLink(selfHost.getSocketReceive(), executor, this);
+            fll = new FairLossLink(selfHost.getSocketReceive(), this);
         } catch (SocketException e) {
             e.printStackTrace();
         }
@@ -67,21 +65,6 @@ public class PerfectLink {
     }
 
 
-    public FairLossLink getFairLossLink() {
-        return fll;
-    }
-
-
-    public Broadcast getBroadcast() {
-        return broadcast;
-    }
-
-
-    public void setBroadcast(Broadcast broadcast) {
-        this.broadcast = broadcast;
-    }
-
-
     public void send(Host host, MsgPacket packet) {
         packet.setPacketId(idCounter.getAndIncrement());
         host.getSentSize().getAndIncrement();
@@ -94,24 +77,32 @@ public class PerfectLink {
         }
     }
 
-    public void deliver(byte[] data) {
-        try {
-            Object obj = Packet.deSerialize(data);
-            if(obj instanceof MsgPacket) {
-                handleMsgPacket((MsgPacket) obj);
+    public MsgPacket deliver() {
+        MsgPacket result = null;
+
+        while(result == null) {
+            try {
+                byte[] data = fll.deliver();
+                Object obj = Packet.deSerialize(data);
+
+                if(obj instanceof MsgPacket) {
+                    result = handleMsgPacket((MsgPacket) obj);
+    
+                } else if(obj instanceof AcksPacket) {
+                    handleAcksPacket((AcksPacket) obj);
+                }
+                
+            } catch (Exception e) {
+                // Data buffer received was too big, buffe size is incremented for next try
+                System.out.println("Buf size adjusted");
+                fll.adjustBufSize();
             }
-            else if(obj instanceof AcksPacket) {
-                handleAcksPacket((AcksPacket) obj);
-            }
-            
-        } catch (Exception e) {
-            // Data buffer received was too big, buffe size is incremented for next try
-            System.out.println("Buf size adjusted");
-            fll.adjustBufSize();
-        } 
+        }
+
+        return result;
     }
 
-    private void handleMsgPacket(MsgPacket packet) throws ClassNotFoundException, IOException {
+    private MsgPacket handleMsgPacket(MsgPacket packet) {
         int packetId = packet.getPacketId();
         int senderTimeStamp = packet.getTimeStamp();
         int senderIndex = packet.getLastHopIndex();
@@ -127,12 +118,10 @@ public class PerfectLink {
             // Add id of packet to pending packets to be acked, we only send Ids for acking.
             sender.getPendingAcks().add(packetId);
 
-            if(broadcast != null) {
-                broadcast.deliver(packet);
-            } else {
-                scheduler.getLogger().logPacket(packet);
-            }
+            return packet;
         }
+
+        return null;
     }
 
     private void handleAcksPacket(AcksPacket packet) {

@@ -30,8 +30,8 @@ public class BEBroadcast implements Broadcast {
         }
     }
     @Override
-    public void deliver(MsgPacket packet) throws ClassNotFoundException, IOException {
-        logger.logPacket(packet);
+    public MsgPacket deliver() {
+        return link.deliver();
     }
 
 }

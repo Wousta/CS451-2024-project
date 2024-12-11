@@ -1,5 +1,10 @@
 package cs451.control;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedReader;
+import java.io.FileInputStream;
+import java.io.FileReader;
+import java.io.IOException;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
@@ -14,6 +19,7 @@ import cs451.Host;
 import cs451.broadcast.BEBroadcast;
 import cs451.broadcast.Broadcast;
 import cs451.broadcast.FifoURBroadcast;
+import cs451.broadcast.URBroadcast;
 import cs451.link.PerfectLink;
 import cs451.packet.Message;
 import cs451.packet.MsgPacket;
@@ -94,7 +100,7 @@ public class Scheduler {
         
         executor.execute(() -> {
             while(true) {
-                link.getFairLossLink().deliver();
+                link.deliver();
             }
         });
     } 
@@ -102,36 +108,32 @@ public class Scheduler {
 
     public void runFIFOBroadcast() {
         PerfectLink link = new PerfectLink(executor, this);
-        Broadcast broadcast = new FifoURBroadcast(link, this);
-
-        link.setBroadcast(broadcast);
+        BEBroadcast beBroadcast = new BEBroadcast(link, this);
+        //BEBroadcast broadcast = new BEBroadcast(link, this);
+        Broadcast broadcast = new FifoURBroadcast(new URBroadcast(beBroadcast, this), this);
 
         sender = new MessageSender(broadcast);  
         executor.execute(sender);
 
         executor.execute(() -> {
             while(true) {
-                link.getFairLossLink().deliver();
+                logger.logPacket(broadcast.deliver());
             }
         });
 
     }
 
 
-    public void runLatticeAgreement(List<int[]> proposals) {
+    public void runLatticeAgreement(String config) throws IOException {
         PerfectLink link = new PerfectLink(executor, this);
         Broadcast broadcast = new BEBroadcast(link, this);
 
-        // link.setBroadcast(broadcast);
+        BufferedReader reader = new BufferedReader(new FileReader(config));
 
-        // sender = new MessageSender(broadcast);  
-        // executor.execute(sender);
 
-        // executor.execute(() -> {
-        //     while(true) {
-        //         link.getFairLossLink().deliver();
-        //     }
-        // });
+
+        reader.close();
+        
     }
 
 
