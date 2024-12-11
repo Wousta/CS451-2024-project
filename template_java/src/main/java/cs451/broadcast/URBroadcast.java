@@ -1,6 +1,5 @@
 package cs451.broadcast;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.HashMap;
@@ -10,9 +9,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import cs451.Host;
 import cs451.control.Scheduler;
-import cs451.link.PerfectLink;
 import cs451.packet.MsgPacket;
-import cs451.parser.Logger;
 
 public class URBroadcast implements Broadcast {
 
@@ -20,21 +17,18 @@ public class URBroadcast implements Broadcast {
     private BEBroadcast broadcast;
     private Host selfHost;
     private List<Host> hosts;
-    private Logger logger;
-    private FifoURBroadcast fifoURBroadcast;
 
     private List<Map<Integer, Boolean>> deliveredList;
     private List<ConcurrentHashMap<TupleKey, Boolean>> pendingList;
     private List<ConcurrentHashMap<Integer, BitSet>> acksMapList;
 
     public URBroadcast(BEBroadcast broadcast, Scheduler scheduler) {
+        scheduler.getLogger().setUrBroadcast(this);
         this.selfHost = scheduler.getSelfHost();
         this.hosts = scheduler.getHosts();
-        this.logger = scheduler.getLogger();
         this.broadcast = broadcast;
-        this.logger.setUrBroadcast(this);
         this.hostsSize = hosts.size();
-
+        
         deliveredList = new ArrayList<>(hostsSize);
         pendingList = new ArrayList<>(hostsSize);
         acksMapList = new ArrayList<>(hostsSize);
@@ -45,12 +39,6 @@ public class URBroadcast implements Broadcast {
             acksMapList.add(new ConcurrentHashMap<>());
         }
     }
-
-
-    public void setFifoURBroadcast(FifoURBroadcast fifoURBroadcast) {
-        this.fifoURBroadcast = fifoURBroadcast;
-    }
-
 
     public List<Map<Integer, Boolean>> getDeliveredList() {
         return deliveredList;

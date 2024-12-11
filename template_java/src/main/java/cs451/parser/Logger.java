@@ -14,7 +14,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import cs451.Host;
 import cs451.broadcast.URBroadcast;
 import cs451.packet.AcksPacket;
-import cs451.packet.Message;
 import cs451.packet.MsgPacket;
 import cs451.packet.Packet;
 

@@ -3,11 +3,8 @@ package cs451.agreement;
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
-import java.util.HashMap;
-import java.util.Map;
 
 import cs451.broadcast.BEBroadcast;
-import cs451.control.Scheduler;
 import cs451.packet.PropPacket;
 
 public class Proposer {

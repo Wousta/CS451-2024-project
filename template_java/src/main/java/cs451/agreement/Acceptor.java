@@ -12,7 +12,6 @@ import java.util.Set;
 import cs451.Host;
 import cs451.control.Scheduler;
 import cs451.link.PerfectLink;
-import cs451.packet.Message;
 import cs451.packet.MsgPacket;
 
 

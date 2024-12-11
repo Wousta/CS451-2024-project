@@ -1,6 +1,5 @@
 package cs451.link;
 
-import java.io.IOException;
 import java.net.SocketException;
 import java.util.ArrayList;
 import java.util.List;
@@ -16,8 +15,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
 
 import cs451.Host;
-import cs451.agreement.Acceptor;
-import cs451.broadcast.Broadcast;
 import cs451.control.Scheduler;
 import cs451.packet.AcksPacket;
 import cs451.packet.MsgPacket;
