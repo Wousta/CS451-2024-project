@@ -1,34 +1,45 @@
 package cs451.packet;
 
+import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Queue;
 import java.util.stream.Collectors;
 
 public class MsgPacket extends Packet {
 
     public static final int MAX_MSGS = 8;
-    private final Queue<Message> messages = new LinkedList<>();
-    private final BitSet alreadyDelivered;
+    private final BitSet flags;          // General purpose use set of flags
     private final int originalId;
     private int propNumber;
-
+    private int shot;
     private byte lastHop;
+    private List<String> messages = new ArrayList<>(MAX_MSGS);
 
-    public MsgPacket(byte hostId, int originalId, BitSet alreadyDelivered) {
+
+    public MsgPacket(byte hostId, int originalId, BitSet flags) {
         super(hostId);
         this.lastHop = hostId;
         this.originalId = originalId;
-        this.alreadyDelivered = alreadyDelivered;
+        this.flags = flags;
     }
 
     public MsgPacket(MsgPacket packet, byte targetHostId) {
         super(packet.hostId, targetHostId);
         originalId = packet.getOriginalId();
-        alreadyDelivered = packet.getAlreadyDelivered();
-        for(Message m : packet.getMessages()) {
+        flags = packet.getFlags();
+        for(String m : packet.getMessages()) {
             messages.add(m);
         }
+    }
+
+    public MsgPacket(byte hostId, byte targetHostId, BitSet alreadyDelivered) {
+        super(hostId);
+        this.lastHop = hostId;
+        this.targetHostId = targetHostId;
+        this.originalId = 0;
+        this.flags = alreadyDelivered;
     }
 
 
@@ -37,23 +48,22 @@ public class MsgPacket extends Packet {
      * @param msg the message to be added to the queue
      * @return true (as specified by Collection.add)
      */
-    public boolean addMessage(Message msg) {
+    public boolean addMessage(String msg) {
         return messages.add(msg);
     }
 
     ////////////////////// GETTERS & SETTERS //////////////////////
 
-    public Queue<Message> getMessages() {
+    public List<String> getMessages() {
         return messages;
     }
 
-    /**
-     * The packet tracks the hosts that has already visited and have bebDelivered this packet,
-     * to speed up the process of getting n/2 + 1 processes packet delivered.
-     * @return A bitset with the bit of each host index set to 1 if it bebDelivered this packet or 0 if it did not.
-     */
-    public BitSet getAlreadyDelivered() {
-        return alreadyDelivered;
+    public void setMessages(List<String> messages) {
+        this.messages = messages;
+    }
+
+    public BitSet getFlags() {
+        return flags;
     }
 
     public int getOriginalId() {
@@ -80,12 +90,19 @@ public class MsgPacket extends Packet {
         this.propNumber = propNumber;
     }
 
+    public int getShot() {
+        return shot;
+    }
+
+    public void setShot(int shot) {
+        this.shot = shot;
+    }
+
     /////////////////////////////////////////////////////////////
 
     @Override
     public String toString() {
-        String msgList = messages.stream().map(Message::toString)
-                        .collect(Collectors.joining(", "));
+        String msgList = String.join(", ", messages);
 
         return "Id " + packetId + " hostId " + hostId + " [" + msgList + "]";
     }

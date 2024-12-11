@@ -93,17 +93,17 @@ public class URBroadcast implements Broadcast {
             pendingAcks = acksMapList.get(ogSenderIndex).get(ogPacketId);
             
             // Add to the bitSet the last hop host that bebDelivered this packet
-            packet.getAlreadyDelivered().set(packet.getLastHopIndex());
+            packet.getFlags().set(packet.getLastHopIndex());
     
             // If received for the first time, create the bitset from the packet bitset and add it to acks map.
             if(pendingAcks == null) {
                 BitSet acks = new BitSet(hostsSize);
-                acks.or(packet.getAlreadyDelivered());
+                acks.or(packet.getFlags());
                 acksMapList.get(ogSenderIndex).put(ogPacketId, acks);
             } 
             else {
                 // If already received before just OR the hosts that have bebDelivered this packet using the BitSet
-                pendingAcks.or(packet.getAlreadyDelivered());
+                pendingAcks.or(packet.getFlags());
             }
     
     

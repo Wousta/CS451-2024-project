@@ -12,40 +12,25 @@ public class Message implements Serializable {
     /**
      * The message content
      */
-    private final byte[] data;
-
-    /**
-     * Sequence number of the message
-     */
-    private final int msgId;
-
-    /**
-     * Id of the host that created the message
-     */
-    private int hostId;
+    private String data;
 
 
-    public Message(int senderId, int msgId, byte[] data) {
-        this.hostId = senderId;
-        this.msgId = msgId;
+    public Message(String data) {
         this.data = data;
     }
-    
-    public int getMsgId() {
-        return msgId;
-    }
 
-    public int getHostId() {
-        return hostId;
-    }
-
-    public byte[] getData() {
+    public String getData() {
         return data;
+    }
+
+
+    public void setData(String data) {
+        this.data = data;
     }
 
     @Override
     public String toString() {
-        return "H" + hostId + "M" + msgId;
+        return "M:" + data;
     }
 
 }

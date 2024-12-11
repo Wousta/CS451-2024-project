@@ -109,8 +109,8 @@ public class Scheduler {
     public void runFIFOBroadcast() {
         PerfectLink link = new PerfectLink(executor, this);
         BEBroadcast beBroadcast = new BEBroadcast(link, this);
-        //BEBroadcast broadcast = new BEBroadcast(link, this);
-        Broadcast broadcast = new FifoURBroadcast(new URBroadcast(beBroadcast, this), this);
+        BEBroadcast broadcast = new BEBroadcast(link, this);
+        //Broadcast broadcast = new FifoURBroadcast(new URBroadcast(beBroadcast, this), this);
 
         sender = new MessageSender(broadcast);  
         executor.execute(sender);
@@ -171,9 +171,8 @@ public class Scheduler {
             for(int i = 0; i < msgsToAdd; i++) {
                 // To string because payload can be any datatype and it only has to be logged, 
                 // so parse to string to be able to cast to string when deserializing to log the message payload.
-                byte[] payload = Packet.serialize(Integer.toString(currentMsgId));
 
-                packet.addMessage(new Message(thisHostId, currentMsgId, payload));
+                packet.addMessage(Integer.toString(currentMsgId));
                 logger.addLine("b " + currentMsgId);
                 ++currentMsgId;
             }
