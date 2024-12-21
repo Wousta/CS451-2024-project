@@ -17,7 +17,7 @@ import cs451.packet.MsgPacket;
 
 public class Acceptor {
 
-    private Map<Integer, MsgPacket> acceptedValues = new HashMap<>();
+    private Map<Integer, List<String>> acceptedValues = new HashMap<>();
 
     private PerfectLink link;
     private List<Host> hosts;
@@ -29,26 +29,27 @@ public class Acceptor {
         this.selfHost = scheduler.getSelfHost();
     }
 
-    public void receiveProp() {
+    public void processProposal(MsgPacket proposal) {
         
-        MsgPacket proposal = link.deliver();
-        MsgPacket acceptedValPacket = acceptedValues.get(proposal.getShot());
-        MsgPacket ack = new MsgPacket(
-            selfHost.getId(), 
-            proposal.getHostId(), 
-            new BitSet(hosts.size())
-        );
-
-        List<String> acceptedValsList = acceptedValPacket.getMessages();
+        System.out.println("*****Processing proposal from host " + proposal.getHostId() + " shot:" + proposal.getShot());
+        MsgPacket ack = new MsgPacket(selfHost.getId(), proposal.getHostId(), proposal);
         List<String> newAcceptedValsList = new ArrayList<>(MsgPacket.MAX_MSGS);
-        int size = acceptedValsList.size();         
-        for(int i = 0; i < size; i++) {
+        List<String> acceptedValsList = acceptedValues.get(proposal.getShot());
+        
+        // First proposal packet received, it will be an ack for every proposal
+        if(acceptedValsList == null) {
+            System.out.println("    NULL PROPOSAL shot:" + proposal.getShot());
+            acceptedValsList = proposal.getMessages();
+        }
+
+        for(int i = 0; i < acceptedValsList.size(); i++) {
             String acceptedVal = acceptedValsList.get(i);
             String proposedVal = proposal.getMessages().get(i);
             String merged = merge(proposedVal, acceptedVal);
 
             if(proposedVal.length() != merged.length()) {
                 // Setting the bit of this proposal to represent that is has been nacked (needs to be refined)
+                System.out.println("    acceptedval:" + acceptedVal + " | proposedVal:" + proposedVal + " | merged: " + merged);
                 ack.getFlags().set(i);
                 ack.addMessage(merged);  
 
@@ -60,8 +61,10 @@ public class Acceptor {
             newAcceptedValsList.add(merged);
         }
 
-        acceptedValPacket.setMessages(newAcceptedValsList);
-        link.send(hosts.get(proposal.getHostIndex()), ack);
+        acceptedValues.put(proposal.getShot(), newAcceptedValsList);
+        ack.setProposal(false);
+        System.out.println("    Sending ack to host " + ack.getTargetHostId());
+        link.send(hosts.get(ack.getTargetHostIndex()), ack);
         
     }
 

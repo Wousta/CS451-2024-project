@@ -2,6 +2,7 @@ package cs451.broadcast;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import cs451.Host;
 import cs451.control.Scheduler;
@@ -26,9 +27,21 @@ public class BEBroadcast implements Broadcast {
             link.send(host, packet);
         }
     }
+
     @Override
     public MsgPacket deliver() {
-        return link.deliver();
+        MsgPacket packet = null;
+
+        while(packet == null) {
+            try {
+                packet = link.pollDeliveredPacket(60, TimeUnit.SECONDS);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+                Thread.currentThread().interrupt();
+            }
+        }
+        
+        return packet;
     }
 
 }

@@ -22,13 +22,11 @@ public class FairLossLink {
     
     private AtomicInteger timesTamp = new AtomicInteger(1);
     private AtomicInteger bufSize = new AtomicInteger(Packet.EXPECTED_SIZE);
-    private PerfectLink perfectLink;
 
-    public FairLossLink(DatagramSocket socketReceive, PerfectLink perfectLink) throws SocketException {
+    public FairLossLink(DatagramSocket socketReceive) throws SocketException {
         this.socketReceive = socketReceive;
         this.socketSend = new DatagramSocket();
         this.socketSendAckOk = new DatagramSocket();
-        this.perfectLink = perfectLink;
     }
 
     /**
@@ -108,6 +106,10 @@ public class FairLossLink {
 
         if(newSize > Packet.MAX_PACKET_SIZE) bufSize.set(Packet.MAX_PACKET_SIZE);
         else bufSize.set(newSize);
+    }
+
+    public int updateTimeStamp() {
+        return timesTamp.getAndIncrement();
     }
 
 }

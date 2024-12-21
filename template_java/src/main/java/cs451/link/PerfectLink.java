@@ -9,6 +9,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.LinkedBlockingDeque;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -29,14 +30,16 @@ public class PerfectLink {
     private List<Host> hosts;
     private List<ReentrantLock> sentMapsLocks;
 
-    // Runnable tasks
-    AckBuildAndSend ackBuildAndSend = new AckBuildAndSend();
-    StubbornSend stubbornSend = new StubbornSend();
-
     // Flow control
     private AtomicInteger ackIdCounter = new AtomicInteger(1);
-    private AtomicInteger idCounter = new AtomicInteger(1);
+    private AtomicInteger packetIdCounter = new AtomicInteger(1);
     private ConcurrentMap<Integer,Packet> acks = new ConcurrentHashMap<>();
+
+    /**
+     * Delivered packets ready to be consummed by the upper layer
+     */
+    private BlockingQueue<MsgPacket> packetsToConsume = new LinkedBlockingQueue<>(32);
+
 
     public PerfectLink(ScheduledExecutorService executor, Scheduler scheduler) {
         this.scheduler = scheduler;
@@ -44,7 +47,7 @@ public class PerfectLink {
         this.hosts = scheduler.getHosts();
 
         try {
-            fll = new FairLossLink(selfHost.getSocketReceive(), this);
+            fll = new FairLossLink(selfHost.getSocketReceive());
         } catch (SocketException e) {
             e.printStackTrace();
         }
@@ -54,52 +57,87 @@ public class PerfectLink {
             sentMapsLocks.add(new ReentrantLock());
         }
 
-        executor.scheduleAtFixedRate(ackBuildAndSend, 100, 250, TimeUnit.MILLISECONDS);
+        executor.scheduleAtFixedRate(new AckBuildAndSend(), 100, 250, TimeUnit.MILLISECONDS);
 
         // Resend operation of stubbornLink that guarantees eventual delivery between correct processes.
-        executor.scheduleAtFixedRate(stubbornSend, 150, 300, TimeUnit.MILLISECONDS);
+        if(scheduler.isLatticeMode()) {
+            executor.scheduleAtFixedRate(new StubbornSendLattice(), 150, 300, TimeUnit.MILLISECONDS);
+        } else {
+            executor.scheduleAtFixedRate(new StubbornSend(), 150, 300, TimeUnit.MILLISECONDS);
+        }
         
     }
 
 
-    public void send(Host host, MsgPacket packet) {
-        packet.setPacketId(idCounter.getAndIncrement());
-        host.getSentSize().getAndIncrement();
-
-        try {
-            packet.setLastHop(selfHost.getId());
-            host.getSent().put(packet.getPacketId(), packet);
-        } catch(Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    public MsgPacket deliver() {
-        MsgPacket result = null;
-
-        while(result == null) {
+    public synchronized void send(Host host, MsgPacket packet) {
+        packet.setPacketId(packetIdCounter.getAndIncrement());
+        packet.setLastHop(selfHost.getId());
+        
+        // Do not send over network packets to ourself
+        if(host.isSelfHost()) {
+            addPacketToConsume(packet);
+            
+        } else {
             try {
-                byte[] data = fll.deliver();
-                Object obj = Packet.deSerialize(data);
-
-                if(obj instanceof MsgPacket) {
-                    result = handleMsgPacket((MsgPacket) obj);
-    
-                } else if(obj instanceof AcksPacket) {
-                    handleAcksPacket((AcksPacket) obj);
-                }
-                
-            } catch (Exception e) {
-                // Data buffer received was too big, buffe size is incremented for next try
-                System.out.println("Buf size adjusted");
-                fll.adjustBufSize();
+                host.getSent().put(packet.getPacketId(), packet);
+                host.getSentSize().getAndIncrement();
+            } catch(Exception e) {
+                e.printStackTrace();
             }
         }
 
-        return result;
     }
 
-    private MsgPacket handleMsgPacket(MsgPacket packet) {
+    /**
+     * Awaits for the reception of one packet, and adds it to the {@link PerfectLink#packetsToConsume} queue if it
+     * can be delivered and consumed by the upper layer with {@link PerfectLink#pollDeliveredPacket()}
+     */
+    public void deliver() {
+
+        try {
+            byte[] data = fll.deliver();
+            Object obj = Packet.deSerialize(data);
+
+            if(obj instanceof MsgPacket) {
+                handleMsgPacket((MsgPacket) obj);
+
+            } else if(obj instanceof AcksPacket) {
+                handleAcksPacket((AcksPacket) obj);
+            }
+            
+        } catch (Exception e) {
+            // Data buffer received was too big, buffe size is incremented for next try
+            System.out.println("Buf size adjusted");
+            fll.adjustBufSize();
+        }
+
+    }
+
+
+    /**
+     * Polls a packet from the {@link PerfectLink#packetsToConsume} and returns it.
+     * @return the packet retrieved or NULL if the queue was empty.
+    * @throws InterruptedException 
+    */
+    public MsgPacket pollDeliveredPacket(long timeOut, TimeUnit unit) throws InterruptedException {
+        return packetsToConsume.poll(timeOut, unit);
+    }
+
+    private void addPacketToConsume(MsgPacket packet) {
+        try {
+            packetsToConsume.put(packet);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+            Thread.currentThread().interrupt();
+        }
+    }
+
+
+    /**
+     * Adds the packet to the pollDeliveredPacket queue to be used by the upper layer if indeed can be delivered.
+     * @param packet the packet to check if it can be delivered
+     */
+    private void handleMsgPacket(MsgPacket packet) {
         int packetId = packet.getPacketId();
         int senderTimeStamp = packet.getTimeStamp();
         int senderIndex = packet.getLastHopIndex();
@@ -115,10 +153,9 @@ public class PerfectLink {
             // Add id of packet to pending packets to be acked, we only send Ids for acking.
             sender.getPendingAcks().add(packetId);
 
-            return packet;
+            addPacketToConsume(packet);
         }
 
-        return null;
     }
 
     private void handleAcksPacket(AcksPacket packet) {
@@ -175,6 +212,26 @@ public class PerfectLink {
         }
         
         acks.remove(packet.getPacketId());
+    }
+
+
+    private class StubbornSendLattice implements Runnable {
+
+        @Override
+        public void run() {
+            for(Host host : hosts) {
+                ReentrantLock lock = sentMapsLocks.get(host.getIndex());
+
+                if(lock.tryLock()) {
+                    host.getSent().forEach((id, packet) -> fll.send(hosts.get(packet.getTargetHostIndex()), packet));
+                    lock.unlock();
+                }        
+
+                acks.forEach((id, packet) -> fll.send(hosts.get(packet.getTargetHostIndex()), packet));
+
+            }
+        }
+        
     }
 
 

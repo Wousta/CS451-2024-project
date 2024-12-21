@@ -12,12 +12,14 @@ public abstract class Packet implements Serializable {
     public static final int EXPECTED_SIZE = 2356;
 
     protected final byte hostId;
+    private byte lastHop;
     protected int packetId; 
     protected int timeStamp;
     protected byte targetHostId;
 
     protected Packet(byte hostId, byte targetHostId) {
         this.hostId = hostId;
+        this.lastHop = hostId;
         this.targetHostId = targetHostId;
     }
 
@@ -28,6 +30,18 @@ public abstract class Packet implements Serializable {
 
     public byte getHostId() {
         return hostId;
+    }
+
+    public int getLastHop() {
+        return lastHop;
+    }
+
+    public int getLastHopIndex() {
+        return lastHop - 1;
+    }
+
+    public void setLastHop(byte lastHop) {
+        this.lastHop = lastHop;
     }
 
     public int getPacketId() {

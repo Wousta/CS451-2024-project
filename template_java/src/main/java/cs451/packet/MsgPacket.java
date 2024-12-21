@@ -12,34 +12,46 @@ public class MsgPacket extends Packet {
     public static final int MAX_MSGS = 8;
     private final BitSet flags;          // General purpose use set of flags
     private final int originalId;
-    private int propNumber;
+    private int[] propNumber;
     private int shot;
-    private byte lastHop;
-    private List<String> messages = new ArrayList<>(MAX_MSGS);
+    private boolean isProposal;
+    private List<String> messages = new LinkedList<>();
 
 
     public MsgPacket(byte hostId, int originalId, BitSet flags) {
         super(hostId);
-        this.lastHop = hostId;
         this.originalId = originalId;
+        this.flags = flags;
+    }
+
+    public MsgPacket(byte hostId, int[] propNumber, int shot, BitSet flags) {
+        super(hostId);
+        this.propNumber = propNumber;
+        this.shot = shot;
+        this.originalId = 0;
         this.flags = flags;
     }
 
     public MsgPacket(MsgPacket packet, byte targetHostId) {
         super(packet.hostId, targetHostId);
-        originalId = packet.getOriginalId();
-        flags = packet.getFlags();
+        this.originalId = packet.originalId;
+        this.propNumber = packet.propNumber;
+        this.isProposal = packet.isProposal;
+        this.shot = packet.shot;
+        this.flags = packet.flags;
+
         for(String m : packet.getMessages()) {
             messages.add(m);
         }
     }
 
-    public MsgPacket(byte hostId, byte targetHostId, BitSet alreadyDelivered) {
+    public MsgPacket(byte hostId, byte targetHostId, MsgPacket packet) {
         super(hostId);
-        this.lastHop = hostId;
         this.targetHostId = targetHostId;
+        this.propNumber = packet.getPropNumber();
+        this.shot = packet.getShot();
+        this.flags = new BitSet(MAX_MSGS);
         this.originalId = 0;
-        this.flags = alreadyDelivered;
     }
 
 
@@ -70,23 +82,11 @@ public class MsgPacket extends Packet {
         return originalId;
     }
 
-    public int getLastHop() {
-        return lastHop;
-    }
-
-    public int getLastHopIndex() {
-        return lastHop - 1;
-    }
-
-    public void setLastHop(byte lastHop) {
-        this.lastHop = lastHop;
-    }
-
-    public int getPropNumber() {
+    public int[] getPropNumber() {
         return propNumber;
     }
 
-    public void setPropNumber(int propNumber) {
+    public void setPropNumber(int[] propNumber) {
         this.propNumber = propNumber;
     }
 
@@ -96,6 +96,14 @@ public class MsgPacket extends Packet {
 
     public void setShot(int shot) {
         this.shot = shot;
+    }
+
+    public boolean isProposal() {
+        return isProposal;
+    }
+
+    public void setProposal(boolean isProposal) {
+        this.isProposal = isProposal;
     }
 
     /////////////////////////////////////////////////////////////
@@ -134,8 +142,5 @@ public class MsgPacket extends Packet {
         return result;
     }
 
-    public static int getMaxMsgs() {
-        return MAX_MSGS;
-    }
 
 }
