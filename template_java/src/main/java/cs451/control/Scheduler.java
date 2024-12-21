@@ -171,15 +171,6 @@ public class Scheduler {
                 link.deliver();
             }
         });
-        
-        // executor.execute(() -> {
-        //     try {
-        //         proposer.propose();
-        //     } catch (IOException e) {
-        //         // TODO Auto-generated catch block
-        //         e.printStackTrace();
-        //     }
-        // });
 
         while(true) {
             MsgPacket packet;

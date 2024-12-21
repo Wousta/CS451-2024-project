@@ -5,6 +5,7 @@ import java.util.BitSet;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -33,12 +34,12 @@ public class Acceptor {
         
         System.out.println("*****Processing proposal from host " + proposal.getHostId() + " shot:" + proposal.getShot());
         MsgPacket ack = new MsgPacket(selfHost.getId(), proposal.getHostId(), proposal);
-        List<String> newAcceptedValsList = new ArrayList<>(MsgPacket.MAX_MSGS);
+        List<String> newAcceptedValsList = new LinkedList<>();
         List<String> acceptedValsList = acceptedValues.get(proposal.getShot());
         
         // First proposal packet received, it will be an ack for every proposal
         if(acceptedValsList == null) {
-            System.out.println("    NULL PROPOSAL shot:" + proposal.getShot());
+            //System.out.println("    NULL PROPOSAL shot:" + proposal.getShot());
             acceptedValsList = proposal.getMessages();
         }
 
@@ -49,7 +50,6 @@ public class Acceptor {
 
             if(proposedVal.length() != merged.length()) {
                 // Setting the bit of this proposal to represent that is has been nacked (needs to be refined)
-                System.out.println("    acceptedval:" + acceptedVal + " | proposedVal:" + proposedVal + " | merged: " + merged);
                 ack.getFlags().set(i);
                 ack.addMessage(merged);  
 
@@ -63,7 +63,7 @@ public class Acceptor {
 
         acceptedValues.put(proposal.getShot(), newAcceptedValsList);
         ack.setProposal(false);
-        System.out.println("    Sending ack to host " + ack.getTargetHostId());
+        //System.out.println("    Sending ack to host " + ack.getTargetHostId());
         link.send(hosts.get(ack.getTargetHostIndex()), ack);
         
     }
