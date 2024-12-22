@@ -32,7 +32,7 @@ public class Acceptor {
 
     public void processProposal(MsgPacket proposal) {
         
-        System.out.println("*****Processing proposal from host " + proposal.getHostId() + " shot:" + proposal.getShot());
+        //System.out.println("*****Processing proposal from host " + proposal.getHostId() + " shot:" + proposal.getShot());
         MsgPacket ack = new MsgPacket(selfHost.getId(), proposal.getHostId(), proposal);
         List<String> newAcceptedValsList = new LinkedList<>();
         List<String> acceptedValsList = acceptedValues.get(proposal.getShot());

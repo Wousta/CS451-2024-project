@@ -1,10 +1,7 @@
 package cs451.agreement;
 
 import java.io.BufferedReader;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Collections;
@@ -19,12 +16,9 @@ import cs451.Host;
 import cs451.broadcast.BEBroadcast;
 import cs451.control.Scheduler;
 import cs451.packet.MsgPacket;
-import cs451.packet.PropPacket;
 import cs451.parser.Logger;
 
 public class Proposer {
-
-    int rebroadcasted = 0;
     
     private boolean eof = false;
     private AtomicBoolean finished = new AtomicBoolean(false);
@@ -92,7 +86,7 @@ public class Proposer {
 
         // Total_proposals % MAX_MSGS == 0 so we stop, as we are about to send an empty packet
         if(!proposedValues.isEmpty()) {
-            System.out.println("NEW PROPOSAL SHOT:" + currShot + " proposal: " + proposedValues);
+            //System.out.println("NEW PROPOSAL SHOT:" + currShot + " proposal: " + proposedValues);
             packet.setProposal(true);
             packet.setMessages(proposedValues);
             beBroadcast.broadcast(packet);
@@ -160,10 +154,9 @@ public class Proposer {
             proposal.setMessages(proposedValues);
             proposal.setProposal(true);
             beBroadcast.broadcast(proposal); 
-            rebroadcasted++;
 
         } else if(inActive.cardinality() == proposedValues.size()) {
-            System.out.println("Deciding shot " + currShot + " ==================================");
+            //System.out.println("Deciding " + currShot + " ==================================");
             decide();
         }
         
@@ -172,7 +165,7 @@ public class Proposer {
 
     private void decide() {
 
-        logger.addLine("DECIDING shot " + currShot + " rebroadcasted:" + rebroadcasted + "  ==================================");
+        logger.addLine("DECIDING " + currShot + "  ==================================");
         for(String proposal : proposedValues) {
             logger.addLine(proposal);
         }

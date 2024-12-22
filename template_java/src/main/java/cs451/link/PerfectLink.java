@@ -38,7 +38,7 @@ public class PerfectLink {
     /**
      * Delivered packets ready to be consummed by the upper layer
      */
-    private BlockingQueue<MsgPacket> packetsToConsume = new LinkedBlockingQueue<>(32);
+    private BlockingQueue<MsgPacket> packetsToConsume = new LinkedBlockingQueue<>();
 
 
     public PerfectLink(ScheduledExecutorService executor, Scheduler scheduler) {
