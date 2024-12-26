@@ -22,15 +22,24 @@ public class Acceptor {
     private PerfectLink link;
     private List<Host> hosts;
     private Host selfHost;
-    //private BitSet 
+
+    /*
+     * For cleaning of acceptedValues. Hosts that are proposing shots higher than shotToClean are noted,
+     * when all hosts are processing a higher shot, the shotToClean can be deleted from acceptedValues.
+     */
+    private BitSet hostsPassedShot;
+    private int shotToClean = 1;
+
 
     public Acceptor(PerfectLink link, Scheduler scheduler){
         this.link = link;
         this.hosts = scheduler.getHosts();
         this.selfHost = scheduler.getSelfHost();
+        this.hostsPassedShot = new BitSet(hosts.size());
 
         scheduler.getLogger().setAcceptedValues(acceptedValues);
     }
+
 
     public void processProposal(MsgPacket proposal) {
         
@@ -65,10 +74,41 @@ public class Acceptor {
 
         acceptedValues.put(proposal.getShot(), newAcceptedValsList);
         ack.setProposal(false);
+
+        while(checkShotToClean(proposal));
+        
         //System.out.println("    Sending ack to host " + ack.getTargetHostId());
         link.send(hosts.get(ack.getTargetHostIndex()), ack);
         
     }
+
+
+    /**
+     * Checks if the proposal is from a shot higher than the current one to be cleaned. 
+     * If all hosts are already processing a higher shot, the shot to be cleaned is deleted from {@link #acceptedValues}
+     * @param proposal the received proposal
+     * @return true if {@link #hostsPassedShot} has been updated, false otherwise.
+     */
+    private boolean checkShotToClean(MsgPacket proposal) {
+        int proposalShot = proposal.getShot();
+
+        if(!hostsPassedShot.get(proposal.getHostIndex()) && proposalShot > shotToClean) {
+
+            hostsPassedShot.set(proposal.getHostIndex());
+            if(hostsPassedShot.cardinality() == hosts.size()) {
+                System.out.println("Shot to clean: " + shotToClean);
+                acceptedValues.remove(shotToClean);
+                ++shotToClean;
+                hostsPassedShot.clear();
+
+                return true;
+            }
+
+        }
+
+        return false;
+    }
+
 
     private String merge(String str1, String str2) {
         Set<String> uniqueWords = new HashSet<>();
