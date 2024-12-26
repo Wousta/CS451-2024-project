@@ -3,6 +3,7 @@ package cs451;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.Executors;
@@ -32,7 +33,6 @@ public class Main {
         }
 
         //write/flush output file if necessary
-        System.out.println("Writing output.");
         logger.close();
     }
 
@@ -60,8 +60,8 @@ public class Main {
         try (BufferedReader reader = new BufferedReader(new FileReader(config))) {
             String[] parts = reader.readLine().trim().split("\\s+");
             input = Arrays.stream(parts).mapToInt(Integer::parseInt).toArray();
-        }
-        catch(Exception e){
+
+        } catch(Exception e) {
             System.err.println("Bad initialization");
             e.printStackTrace();
             return;
@@ -79,7 +79,7 @@ public class Main {
                 scheduler.runPerfectLinks();
                 break;
             case Constants.LATTICE:
-                // Run Lattice
+                scheduler.runLatticeAgreement(config);
                 break;
             default:
                 System.err.println("Configuration mode not recognized");

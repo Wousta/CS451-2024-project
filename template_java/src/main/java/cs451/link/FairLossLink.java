@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.SocketException;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import cs451.Host;
@@ -23,15 +22,11 @@ public class FairLossLink {
     
     private AtomicInteger timesTamp = new AtomicInteger(1);
     private AtomicInteger bufSize = new AtomicInteger(Packet.EXPECTED_SIZE);
-    private PerfectLink perfectLink;
-    ScheduledExecutorService executor;
 
-    public FairLossLink(DatagramSocket socketReceive,  ScheduledExecutorService executor, PerfectLink perfectLink) throws SocketException {
+    public FairLossLink(DatagramSocket socketReceive) throws SocketException {
         this.socketReceive = socketReceive;
         this.socketSend = new DatagramSocket();
         this.socketSendAckOk = new DatagramSocket();
-        this.executor = executor;
-        this.perfectLink = perfectLink;
     }
 
     /**
@@ -94,7 +89,7 @@ public class FairLossLink {
      * so threads have to wait for each other and read one port one message at a time.
      * @return the deserialized Message
      */
-    public void deliver() {
+    public byte[] deliver() {
         int size = bufSize.get();
         DatagramPacket packet = new DatagramPacket(new byte[size], size);
         try {
@@ -103,7 +98,7 @@ public class FairLossLink {
             e.printStackTrace();
         }
 
-        perfectLink.deliver(packet.getData());
+        return packet.getData();
     }
 
     public void adjustBufSize() {
@@ -111,6 +106,10 @@ public class FairLossLink {
 
         if(newSize > Packet.MAX_PACKET_SIZE) bufSize.set(Packet.MAX_PACKET_SIZE);
         else bufSize.set(newSize);
+    }
+
+    public int updateTimeStamp() {
+        return timesTamp.getAndIncrement();
     }
 
 }

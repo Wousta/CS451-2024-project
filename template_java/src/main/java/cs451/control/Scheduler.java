@@ -1,21 +1,33 @@
 package cs451.control;
 
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.List;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.Callable;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+
+import javax.swing.text.MaskFormatter;
 
 import cs451.Constants;
 import cs451.Host;
+import cs451.agreement.Acceptor;
+import cs451.agreement.Proposer;
+import cs451.broadcast.BEBroadcast;
 import cs451.broadcast.Broadcast;
-import cs451.broadcast.FifoURBroadcast;
 import cs451.link.PerfectLink;
-import cs451.packet.Message;
 import cs451.packet.MsgPacket;
 import cs451.packet.Packet;
+import cs451.packet.PropPacket;
 import cs451.parser.Logger;
 import cs451.parser.Parser;
 
@@ -43,10 +55,12 @@ public class Scheduler {
 
     public Scheduler(Parser parser, Logger logger, ScheduledExecutorService executor, int[] input) throws SocketException, UnknownHostException {
         this.hosts = parser.hosts();
-        this.selfHost = hosts.get(parser.myIndex());
         this.logger = logger;
         this.executor = executor;
         this.input = input;
+
+        this.selfHost = hosts.get(parser.myIndex());
+        selfHost.setSelfHost(true);
 
         sendIters = input[MSGS_TO_SEND_INDEX]/MsgPacket.MAX_MSGS;
         messagesToSendRemainder = input[MSGS_TO_SEND_INDEX] % MsgPacket.MAX_MSGS; 
@@ -78,6 +92,10 @@ public class Scheduler {
         return loadBalancer;
     }
 
+    public boolean isLatticeMode() {
+        return input.length == Constants.LATTICE;
+    }
+
 
     // Sends messages to one host, receives acks from that host, sends back ack ok.
     public void runPerfectLinks() {
@@ -92,27 +110,86 @@ public class Scheduler {
         
         executor.execute(() -> {
             while(true) {
-                link.getFairLossLink().deliver();
+                link.deliver();
             }
         });
-    }
+
+        executor.execute(() -> {
+            while(true) {
+                MsgPacket packet;
+                try {
+                    packet = link.pollDeliveredPacket(1000, TimeUnit.SECONDS);
+                    logger.logPacket(packet);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();   
+                }
+            }
+        });
+    } 
 
 
     public void runFIFOBroadcast() {
         PerfectLink link = new PerfectLink(executor, this);
-        Broadcast broadcast = new FifoURBroadcast(link, this);
+        BEBroadcast beBroadcast = new BEBroadcast(link, this);
+        BEBroadcast broadcast = new BEBroadcast(link, this);
+        //Broadcast broadcast = new FifoURBroadcast(new URBroadcast(beBroadcast, this), this);
 
         sender = new MessageSender(broadcast);  
+
+        executor.execute(() -> {
+            while(true) {
+                link.deliver();
+            }
+        });
+
         executor.execute(sender);
 
         executor.execute(() -> {
             while(true) {
-                link.getFairLossLink().deliver();
+                logger.logPacket((MsgPacket) broadcast.deliver());
             }
         });
 
     }
 
+
+    public void runLatticeAgreement(String config) throws IOException {
+        PerfectLink link = new PerfectLink(executor, this);
+        BEBroadcast broadcast = new BEBroadcast(link, this);
+        Acceptor acceptor = new Acceptor(link, this);
+
+        Proposer proposer = new Proposer(
+            broadcast, 
+            new BufferedReader(new FileReader(config)), 
+            this
+        );
+        
+        proposer.propose();
+        
+        executor.execute(() -> {
+            while(true) {
+                link.deliver();
+            }
+        });
+
+        while(true) {
+            MsgPacket packet;
+            try {
+                packet = link.pollDeliveredPacket(1000, TimeUnit.SECONDS);
+
+                if(packet.isProposal()) {
+                    acceptor.processProposal(packet);
+                } else {
+                    proposer.processAck(packet);
+                }
+
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                e.printStackTrace();
+            }  
+        }
+        
+    }
 
     public void tryActivateSend() {
         // Used boolean because this function is always called sequentially by perfect link stubbornSend task
@@ -148,9 +225,8 @@ public class Scheduler {
             for(int i = 0; i < msgsToAdd; i++) {
                 // To string because payload can be any datatype and it only has to be logged, 
                 // so parse to string to be able to cast to string when deserializing to log the message payload.
-                byte[] payload = Packet.serialize(Integer.toString(currentMsgId));
 
-                packet.addMessage(new Message(thisHostId, currentMsgId, payload));
+                packet.addMessage(Integer.toString(currentMsgId));
                 logger.addLine("b " + currentMsgId);
                 ++currentMsgId;
             }

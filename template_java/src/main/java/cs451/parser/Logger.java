@@ -14,7 +14,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import cs451.Host;
 import cs451.broadcast.URBroadcast;
 import cs451.packet.AcksPacket;
-import cs451.packet.Message;
 import cs451.packet.MsgPacket;
 import cs451.packet.Packet;
 
@@ -48,9 +47,9 @@ public class Logger {
         this.packetId = packetId;
     }
 
-    public synchronized void logPacket(MsgPacket packet) throws ClassNotFoundException, IOException {
-        for(Message m : packet.getMessages()) {
-            addLine("d " + m.getHostId() + " " + (String)Packet.deSerialize(m.getData()));
+    public synchronized void logPacket(MsgPacket packet) {
+        for(String m : packet.getMessages()) {
+            addLine("d " + packet.getHostId() + " " + m);
             ++deliveredCount;
         }
     }
@@ -85,18 +84,20 @@ public class Logger {
             writer.write("\ntotal messages delivered = " + deliveredCount);
 
 
-            writer.write("\n\nURB data=============");
-            int delSize = 0;
-            int pendingSize = 0;
-            int acksSize = 0;
-            for(int i = 0; i < hosts.size(); i++) {
-                delSize += urBroadcast.getDeliveredList().get(i).size();
-                pendingSize += urBroadcast.getPendingList().get(i).size();
-                acksSize += urBroadcast.getAcksMapList().get(i).size();
+            if(urBroadcast != null) {
+                writer.write("\n\nURB data=============");
+                int delSize = 0;
+                int pendingSize = 0;
+                int acksSize = 0;
+                for(int i = 0; i < hosts.size(); i++) {
+                    delSize += urBroadcast.getDeliveredList().get(i).size();
+                    pendingSize += urBroadcast.getPendingList().get(i).size();
+                    acksSize += urBroadcast.getAcksMapList().get(i).size();
+                }
+                writer.write("\ndelivered size =  " + delSize);
+                writer.write("\npending size = " + pendingSize);
+                writer.write("\nacks size = " + acksSize);
             }
-            writer.write("\ndelivered size =  " + delSize);
-            writer.write("\npending size = " + pendingSize);
-            writer.write("\nacks size = " + acksSize);
             
             writer.close();
         } catch (IOException e) {

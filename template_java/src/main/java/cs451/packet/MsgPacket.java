@@ -1,67 +1,116 @@
 package cs451.packet;
 
+import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Queue;
 import java.util.stream.Collectors;
 
 public class MsgPacket extends Packet {
 
     public static final int MAX_MSGS = 8;
-    private final Queue<Message> messages = new LinkedList<>();
-    private final BitSet alreadyDelivered;
+    private final BitSet flags;          // General purpose use set of flags
     private final int originalId;
+    private int[] propNumber;
+    private int shot;
+    private boolean isProposal;
+    private List<String> messages = new LinkedList<>();
 
-    public MsgPacket(byte hostId, int originalId, BitSet alreadyDelivered) {
-        super(hostId, (byte) 0); // Assuming a default value for destinationHostId
+
+    public MsgPacket(byte hostId, int originalId, BitSet flags) {
+        super(hostId);
         this.originalId = originalId;
-        this.alreadyDelivered = alreadyDelivered;
+        this.flags = flags;
+    }
+
+    public MsgPacket(byte hostId, int[] propNumber, int shot, BitSet flags) {
+        super(hostId);
+        this.propNumber = propNumber;
+        this.shot = shot;
+        this.originalId = 0;
+        this.flags = flags;
     }
 
     public MsgPacket(MsgPacket packet, byte targetHostId) {
         super(packet.hostId, targetHostId);
-        originalId = packet.getOriginalId();
-        alreadyDelivered = packet.getAlreadyDelivered();
-        for(Message m : packet.getMessages()) {
+        this.originalId = packet.originalId;
+        this.propNumber = packet.propNumber;
+        this.isProposal = packet.isProposal;
+        this.shot = packet.shot;
+        this.flags = packet.flags;
+
+        for(String m : packet.getMessages()) {
             messages.add(m);
         }
     }
+
+    public MsgPacket(byte hostId, byte targetHostId, MsgPacket packet) {
+        super(hostId);
+        this.targetHostId = targetHostId;
+        this.propNumber = packet.getPropNumber();
+        this.shot = packet.getShot();
+        this.flags = new BitSet(MAX_MSGS);
+        this.originalId = 0;
+    }
+
 
     /**
      * Adds a message to the Packet's internal queue of messages.
      * @param msg the message to be added to the queue
      * @return true (as specified by Collection.add)
      */
-    public boolean addMessage(Message msg) {
+    public boolean addMessage(String msg) {
         return messages.add(msg);
     }
 
     ////////////////////// GETTERS & SETTERS //////////////////////
 
-    public Queue<Message> getMessages() {
+    public List<String> getMessages() {
         return messages;
     }
 
-    /**
-     * The packet tracks the hosts that has already visited and have bebDelivered this packet,
-     * to speed up the process of getting n/2 + 1 processes packet delivered.
-     * @return A bitset with the bit of each host index set to 1 if it bebDelivered this packet or 0 if it did not.
-     */
-    public BitSet getAlreadyDelivered() {
-        return alreadyDelivered;
+    public void setMessages(List<String> messages) {
+        this.messages = messages;
+    }
+
+    public BitSet getFlags() {
+        return flags;
     }
 
     public int getOriginalId() {
         return originalId;
     }
 
-    /////////////////////////////////////////////////////////////
+    public int[] getPropNumber() {
+        return propNumber;
+    }
 
+    public void setPropNumber(int[] propNumber) {
+        this.propNumber = propNumber;
+    }
+
+    public int getShot() {
+        return shot;
+    }
+
+    public void setShot(int shot) {
+        this.shot = shot;
+    }
+
+    public boolean isProposal() {
+        return isProposal;
+    }
+
+    public void setProposal(boolean isProposal) {
+        this.isProposal = isProposal;
+    }
+
+    /////////////////////////////////////////////////////////////
 
     @Override
     public String toString() {
-        String msgList = messages.stream().map(Message::toString)
-                        .collect(Collectors.joining(", "));
+        String msgList = String.join(", ", messages);
 
         return "Id " + packetId + " hostId " + hostId + " [" + msgList + "]";
     }
@@ -92,5 +141,6 @@ public class MsgPacket extends Packet {
         result = prime * result + Integer.hashCode(hostId);
         return result;
     }
+
 
 }

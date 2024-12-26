@@ -22,6 +22,7 @@ public class Host {
     private int port = -1;
     private String outputPath;
     private DatagramSocket socketReceive;
+    private boolean isSelfHost = false;     // Used to determine if this instance of host is the one running the program (parser.miIndex())
     
     /**
      * Stores delivered messages that came from this host.
@@ -39,6 +40,8 @@ public class Host {
      * The key is the PacketId.
      */
     private ConcurrentSkipListMap<Integer,Packet> sent = new ConcurrentSkipListMap<>();
+
+    // Serves as a very rough estimate, may even return negative but serves its purpose
     private AtomicInteger sentSize = new AtomicInteger();
 
     public boolean populate(String idString, String ipString, String portString) {
@@ -148,6 +151,14 @@ public class Host {
 
     public AtomicInteger getSentSize() {
         return sentSize;
+    }
+
+    public boolean isSelfHost() {
+        return isSelfHost;
+    }
+
+    public void setSelfHost(boolean isSelfHost) {
+        this.isSelfHost = isSelfHost;
     }
 
     // SETTERS ================================================
