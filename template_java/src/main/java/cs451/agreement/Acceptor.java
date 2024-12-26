@@ -24,10 +24,9 @@ public class Acceptor {
     private Host selfHost;
 
     /*
-     * For cleaning of acceptedValues. Hosts that are proposing shots higher than shotToClean are noted,
-     * when all hosts are processing a higher shot, the shotToClean can be deleted from acceptedValues.
+     * For cleaning of acceptedValues. 
      */
-    private BitSet hostsPassedShot;
+    private Map<Integer, BitSet> ongoingShots = new HashMap<>();
     private int shotToClean = 1;
 
 
@@ -35,7 +34,6 @@ public class Acceptor {
         this.link = link;
         this.hosts = scheduler.getHosts();
         this.selfHost = scheduler.getSelfHost();
-        this.hostsPassedShot = new BitSet(hosts.size());
 
         scheduler.getLogger().setAcceptedValues(acceptedValues);
     }
@@ -75,38 +73,40 @@ public class Acceptor {
         acceptedValues.put(proposal.getShot(), newAcceptedValsList);
         ack.setProposal(false);
 
-        while(checkShotToClean(proposal));
+        // Try acceptedValues cleanup
+        cleanAcceptedValues(proposal);
         
         //System.out.println("    Sending ack to host " + ack.getTargetHostId());
         link.send(hosts.get(ack.getTargetHostIndex()), ack);
         
     }
 
-
-    /**
-     * Checks if the proposal is from a shot higher than the current one to be cleaned. 
-     * If all hosts are already processing a higher shot, the shot to be cleaned is deleted from {@link #acceptedValues}
-     * @param proposal the received proposal
-     * @return true if {@link #hostsPassedShot} has been updated, false otherwise.
-     */
-    private boolean checkShotToClean(MsgPacket proposal) {
+    private void cleanAcceptedValues(MsgPacket proposal) {
         int proposalShot = proposal.getShot();
 
-        if(!hostsPassedShot.get(proposal.getHostIndex()) && proposalShot > shotToClean) {
-
-            hostsPassedShot.set(proposal.getHostIndex());
-            if(hostsPassedShot.cardinality() == hosts.size()) {
-                System.out.println("Shot to clean: " + shotToClean);
-                acceptedValues.remove(shotToClean);
-                ++shotToClean;
-                hostsPassedShot.clear();
-
-                return true;
-            }
-
+        if(proposalShot <= shotToClean) {
+            return;
         }
 
-        return false;
+        if(!ongoingShots.containsKey(proposalShot)) {
+            BitSet set = new BitSet(hosts.size());
+            set.set(proposal.getHostIndex());
+            ongoingShots.put(proposalShot, set);
+
+            return;
+        }
+
+        BitSet hostsInShot = ongoingShots.get(proposalShot);
+        hostsInShot.set(proposal.getHostIndex());
+        if(hostsInShot.cardinality() == hosts.size()) {
+
+            for(int i = 1; i < proposalShot; i++) {
+                acceptedValues.remove(i);
+                ongoingShots.remove(i);
+            }
+
+            shotToClean = proposalShot;
+        }
     }
 
 
