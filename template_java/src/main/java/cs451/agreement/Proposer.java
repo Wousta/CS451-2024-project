@@ -68,7 +68,7 @@ public class Proposer {
             String proposal = reader.readLine();
             if(proposal == null) {
                 eof = true;
-                System.out.println("EOF reached");
+                //System.out.println("EOF reached");
                 reader.close();
             } else {
                 proposedValues.add(proposal);
@@ -165,7 +165,7 @@ public class Proposer {
 
     private void decide() {
 
-        logger.addLine("DECIDING " + currShot + "  ==================================");
+        //logger.addLine("DECIDING " + currShot + "  ==================================");
         for(String proposal : proposedValues) {
             logger.addLine(proposal);
         }

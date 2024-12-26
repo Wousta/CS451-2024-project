@@ -1,6 +1,5 @@
 package cs451.agreement;
 
-import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Collections;
 import java.util.HashMap;
@@ -23,11 +22,14 @@ public class Acceptor {
     private PerfectLink link;
     private List<Host> hosts;
     private Host selfHost;
+    //private BitSet 
 
     public Acceptor(PerfectLink link, Scheduler scheduler){
         this.link = link;
         this.hosts = scheduler.getHosts();
         this.selfHost = scheduler.getSelfHost();
+
+        scheduler.getLogger().setAcceptedValues(acceptedValues);
     }
 
     public void processProposal(MsgPacket proposal) {

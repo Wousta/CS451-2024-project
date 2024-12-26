@@ -4,6 +4,7 @@ import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentMap;
@@ -25,6 +26,7 @@ public class Logger {
     private AtomicLong packetId;
     private int deliveredCount = 0;
     private URBroadcast urBroadcast;
+    private Map<Integer, List<String>> acceptedValues;
 
 
     public Logger(String path, List<Host> hosts, int myIndex){
@@ -46,6 +48,13 @@ public class Logger {
     public void setPacketId(AtomicLong packetId) {
         this.packetId = packetId;
     }
+
+    
+
+    public void setAcceptedValues(Map<Integer, List<String>> acceptedValues) {
+        this.acceptedValues = acceptedValues;
+    }
+
 
     public synchronized void logPacket(MsgPacket packet) {
         for(String m : packet.getMessages()) {
@@ -83,21 +92,24 @@ public class Logger {
             writer.write("\nsent size = " + sent.size() + " acks: " + acksInSent.get() + " msgs: " + msgsInSent.get());
             writer.write("\ntotal messages delivered = " + deliveredCount);
 
-
-            if(urBroadcast != null) {
-                writer.write("\n\nURB data=============");
-                int delSize = 0;
-                int pendingSize = 0;
-                int acksSize = 0;
-                for(int i = 0; i < hosts.size(); i++) {
-                    delSize += urBroadcast.getDeliveredList().get(i).size();
-                    pendingSize += urBroadcast.getPendingList().get(i).size();
-                    acksSize += urBroadcast.getAcksMapList().get(i).size();
-                }
-                writer.write("\ndelivered size =  " + delSize);
-                writer.write("\npending size = " + pendingSize);
-                writer.write("\nacks size = " + acksSize);
+            if(acceptedValues != null) {
+                writer.write("\nacceptedValues size = " + acceptedValues.size());
             }
+
+            // if(urBroadcast != null) {
+            //     writer.write("\n\nURB data=============");
+            //     int delSize = 0;
+            //     int pendingSize = 0;
+            //     int acksSize = 0;
+            //     for(int i = 0; i < hosts.size(); i++) {
+            //         delSize += urBroadcast.getDeliveredList().get(i).size();
+            //         pendingSize += urBroadcast.getPendingList().get(i).size();
+            //         acksSize += urBroadcast.getAcksMapList().get(i).size();
+            //     }
+            //     writer.write("\ndelivered size =  " + delSize);
+            //     writer.write("\npending size = " + pendingSize);
+            //     writer.write("\nacks size = " + acksSize);
+            // }
             
             writer.close();
         } catch (IOException e) {
