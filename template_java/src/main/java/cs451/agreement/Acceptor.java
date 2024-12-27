@@ -43,42 +43,47 @@ public class Acceptor {
         
         //System.out.println("*****Processing proposal from host " + proposal.getHostId() + " shot:" + proposal.getShot());
         MsgPacket ack = new MsgPacket(selfHost.getId(), proposal.getHostId(), proposal);
-        List<String> newAcceptedValsList = new LinkedList<>();
         List<String> acceptedValsList = acceptedValues.get(proposal.getShot());
         
         // First proposal packet received, it will be an ack for every proposal
         if(acceptedValsList == null) {
-            //System.out.println("    NULL PROPOSAL shot:" + proposal.getShot());
             acceptedValsList = proposal.getMessages();
-        }
-
-        for(int i = 0; i < acceptedValsList.size(); i++) {
-            String acceptedVal = acceptedValsList.get(i);
-            String proposedVal = proposal.getMessages().get(i);
-            String merged = merge(proposedVal, acceptedVal);
-
-            if(proposedVal.length() != merged.length()) {
-                // Setting the bit of this proposal to represent that is has been nacked (needs to be refined)
-                ack.getFlags().set(i);
-                ack.addMessage(merged);  
-
-            } else {
-                // If the proposal contained the accepted value, just ack that proposal
+            
+            for(int i = 0; i < acceptedValsList.size(); i++) {
                 ack.addMessage("");
             }
+            
+            acceptedValues.put(proposal.getShot(), acceptedValsList);
 
-            newAcceptedValsList.add(merged);
+        } else {
+            List<String> newAcceptedValsList = new LinkedList<>();
+
+            for(int i = 0; i < acceptedValsList.size(); i++) {
+                String acceptedVal = acceptedValsList.get(i);
+                String proposedVal = proposal.getMessages().get(i);
+                String merged = merge(proposedVal, acceptedVal);
+    
+                if(proposedVal.length() != merged.length()) {
+                    // Setting the bit of this proposal to represent that is has been nacked (needs to be refined)
+                    ack.getFlags().set(i);
+                    ack.addMessage(merged);  
+    
+                } else {
+                    // If the proposal contained the accepted value, just ack that proposal
+                    ack.addMessage("");
+                }
+    
+                newAcceptedValsList.add(merged);
+            }
+
+            acceptedValues.put(proposal.getShot(), newAcceptedValsList);
         }
 
-        acceptedValues.put(proposal.getShot(), newAcceptedValsList);
         ack.setProposal(false);
 
         // Try acceptedValues cleanup
         cleanAcceptedValues(proposal);
-        
-        //System.out.println("    Sending ack to host " + ack.getTargetHostId());
         link.send(hosts.get(ack.getTargetHostIndex()), ack);
-        
     }
 
     private void cleanAcceptedValues(MsgPacket proposal) {
@@ -98,6 +103,7 @@ public class Acceptor {
 
         BitSet hostsInShot = ongoingShots.get(proposalShot);
         hostsInShot.set(proposal.getHostIndex());
+
         if(hostsInShot.cardinality() == hosts.size()) {
 
             for(int i = 1; i < proposalShot; i++) {

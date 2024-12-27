@@ -21,7 +21,6 @@ import cs451.parser.Logger;
 public class Proposer {
     
     private boolean eof = false;
-    private AtomicBoolean finished = new AtomicBoolean(false);
     private int currShot = 0;
     private int[] ackCount;
     private int[] nackCount;
@@ -29,8 +28,8 @@ public class Proposer {
     private BitSet inActive;
     private int quorum;
     private LinkedList<String> proposedValues = new LinkedList<>();
+    
 
-    private int[] config = new int[Constants.LATTICE];
     private List<Host> hosts;
     private Host selfHost;
     private BEBroadcast beBroadcast;
@@ -49,14 +48,6 @@ public class Proposer {
         this.nackCount = new int[MsgPacket.MAX_MSGS];
         this.activePropNum = new int[MsgPacket.MAX_MSGS];
         this.inActive = new BitSet(MsgPacket.MAX_MSGS);
-
-        String[] parts;
-        try {
-            parts = reader.readLine().trim().split("\\s+");
-            config = Arrays.stream(parts).mapToInt(Integer::parseInt).toArray();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
     }
 
     /*
@@ -97,7 +88,7 @@ public class Proposer {
     public void processAck(MsgPacket packet) {
 
         if(packet.getShot() != currShot) {
-            // System.out.println("WRONG SHOT host-"+ packet.getHostId());
+            System.out.println("WRONG SHOT host-"+ packet.getHostId());
             return;
         }
 
@@ -183,14 +174,7 @@ public class Proposer {
             } catch (IOException e) {
                 e.printStackTrace();
             }
-        } else {
-            finished.set(true);
-        }
-    }
-
-
-    public boolean hasFinished() {
-        return finished.get();
+        } 
     }
 
 
