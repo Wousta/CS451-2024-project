@@ -5,13 +5,14 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
 
-import cs451.Constants;
 import cs451.Host;
 import cs451.broadcast.BEBroadcast;
 import cs451.control.Scheduler;
@@ -27,9 +28,11 @@ public class Proposer {
     private int[] activePropNum;
     private BitSet inActive;
     private int quorum;
-    private LinkedList<String> proposedValues = new LinkedList<>();
+    private List<String> proposedValues = new LinkedList<>();
+    private Map<Integer, List<String>> futureShotsProposals = new HashMap<>();
     
 
+    private int[] config;
     private List<Host> hosts;
     private Host selfHost;
     private BEBroadcast beBroadcast;
@@ -48,6 +51,14 @@ public class Proposer {
         this.nackCount = new int[MsgPacket.MAX_MSGS];
         this.activePropNum = new int[MsgPacket.MAX_MSGS];
         this.inActive = new BitSet(MsgPacket.MAX_MSGS);
+
+        String[] parts;
+        try {
+            parts = reader.readLine().trim().split("\\s+");
+            config = Arrays.stream(parts).mapToInt(Integer::parseInt).toArray();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     /*
@@ -67,6 +78,13 @@ public class Proposer {
         }
 
         ++currShot;
+
+        List<String> extraProps = futureShotsProposals.get(currShot);
+        if(extraProps != null) {
+            System.err.println("Merging future props");
+            proposedValues = mergeLists(extraProps, proposedValues);
+            futureShotsProposals.remove(currShot);
+        }
         
         MsgPacket packet = new MsgPacket(
             selfHost.getId(), 
@@ -88,12 +106,9 @@ public class Proposer {
     public void processAck(MsgPacket packet) {
 
         if(packet.getShot() != currShot) {
-            System.out.println("WRONG SHOT host-"+ packet.getHostId());
+            addToFutureShots(packet);
             return;
         }
-
-        //System.out.println("ACK from shot:" + packet.getShot() + " host:" + packet.getHostId());
-        //System.out.println("    proposals: " + packet.getMessages() + " activeProps: " + proposedValues);
 
         boolean doRefine = false;
         List<String> proposals = packet.getMessages();
@@ -112,7 +127,6 @@ public class Proposer {
                 
             }
 
-
             if(nackCount[i] > 0 
                     && nackCount[i] + ackCount[i] >= quorum 
                     && !inActive.get(i)) {
@@ -130,33 +144,32 @@ public class Proposer {
 
         }
 
-        // System.out.println("        inactive: " + inActive + " ackCount:" + Arrays.toString(ackCount) + " nackCount:" +  Arrays.toString(nackCount));
-        // System.out.println("            packet Shot:" + packet.getShot() + " currShot:" + currShot);
-        // System.out.println("processed ack from host " + packet.getHostId() + ": " + Arrays.toString(packet.getPropNumber()));
-
         if(doRefine) {
-            MsgPacket proposal = new MsgPacket(
-                selfHost.getId(), 
-                activePropNum, 
-                currShot, 
-                new BitSet(proposedValues.size())
-            );
-    
-            proposal.setMessages(proposedValues);
-            proposal.setProposal(true);
-            beBroadcast.broadcast(proposal); 
-
+            refine();
         } else if(inActive.cardinality() == proposedValues.size()) {
-            //System.out.println("Deciding " + currShot + " ==================================");
             decide();
         }
         
     }
 
 
+    private void refine() {
+        MsgPacket proposal = new MsgPacket(
+            selfHost.getId(), 
+            activePropNum, 
+            currShot, 
+            new BitSet(proposedValues.size())
+        );
+
+        proposal.setMessages(proposedValues);
+        proposal.setProposal(true);
+        beBroadcast.broadcast(proposal); 
+    }
+
+
     private void decide() {
 
-        //logger.addLine("DECIDING " + currShot + "  ==================================");
+        logger.addLine("DECIDING " + currShot + "  ==================================");
         for(String proposal : proposedValues) {
             logger.addLine(proposal);
         }
@@ -175,6 +188,47 @@ public class Proposer {
                 e.printStackTrace();
             }
         } 
+    }
+
+
+    private void addToFutureShots(MsgPacket packet) {
+
+        // We only want to prepare for future shots
+        if(packet.getShot() < currShot) {
+            System.out.println("HWY");
+            return;
+        }
+
+        System.out.println("AAAA");
+
+
+        int propShot = packet.getShot();
+        List<String> packetValues = packet.getMessages();
+        List<String> currValues = futureShotsProposals.get(propShot);
+
+        if(currValues == null) {
+            futureShotsProposals.put(propShot, packetValues);
+            
+        } else {
+            List<String> newValues = mergeLists(packetValues, currValues);
+            futureShotsProposals.put(propShot, newValues);
+        }
+    }
+
+
+    private List<String> mergeLists(List<String> list1, List<String> list2) {
+        List<String> mergedList = new LinkedList<>();
+
+        Iterator<String> iterator1 = list1.iterator();
+        Iterator<String> iterator2 = list2.iterator();
+
+        while (iterator1.hasNext() && iterator2.hasNext()) {
+            String str1 = iterator1.next();
+            String str2 = iterator2.next();
+            mergedList.add(merge(str1, str2));
+        }
+
+        return mergedList;
     }
 
 

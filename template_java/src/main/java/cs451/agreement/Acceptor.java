@@ -85,6 +85,7 @@ public class Acceptor {
         cleanAcceptedValues(proposal);
         link.send(hosts.get(ack.getTargetHostIndex()), ack);
     }
+    
 
     private void cleanAcceptedValues(MsgPacket proposal) {
         int proposalShot = proposal.getShot();
